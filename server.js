@@ -281,7 +281,6 @@ app.post('/punch-in', async (req, res) => {
   }
 });
 
-
 app.post('/punch-out', async (req, res) => {
   const { username } = req.body;
   
@@ -300,7 +299,9 @@ app.post('/punch-out', async (req, res) => {
     const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
 
     // Check if the user has already punched out today
-
+    if (!user.firstCheckInTime) {
+      return res.status(400).json({ success: false, message: 'User has not punched in yet' });
+    }
 
     user.punchOutTime = formattedDateTime;
     user.lastCheckOutTime = formattedDateTime;
@@ -309,8 +310,18 @@ app.post('/punch-out', async (req, res) => {
     const firstCheckInTime = new Date(user.firstCheckInTime);
     const lastCheckOutTime = new Date(user.lastCheckOutTime);
 
+    if (isNaN(firstCheckInTime.getTime()) || isNaN(lastCheckOutTime.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid check-in or check-out time' });
+    }
+
     // Calculate the difference in milliseconds and convert to hours
     const workingHours = (lastCheckOutTime - firstCheckInTime) / (1000 * 60 * 60);
+    if (isNaN(workingHours) || workingHours < 0) {
+      return res.status(400).json({ success: false, message: 'Error in calculating working hours' });
+    }
+
+    // Ensure totalWorkingHours is initialized properly
+    user.totalWorkingHours = user.totalWorkingHours || 0;
     user.totalWorkingHours += workingHours;
 
     // Reset punchInTime to prevent multiple punch-outs
@@ -320,7 +331,7 @@ app.post('/punch-out', async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: 'Punched Out successfully', 
+      message: 'Punched out successfully', 
       punchOutTime: user.punchOutTime,
       totalWorkingHours: user.totalWorkingHours 
     });
@@ -330,7 +341,6 @@ app.post('/punch-out', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 // Route to get employee details by username
 app.get('/employee-details/:username', async (req, res) => {
