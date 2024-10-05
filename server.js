@@ -392,7 +392,7 @@ app.post('/offsite-request', async (req, res) => {
       fromTime,
       leavingTime,
       location,
-      placeName // Store placeName in the database
+      currentLocation// Store placeName in the database
     });
 
     await offsiteRequest.save();
