@@ -288,54 +288,57 @@ app.post('/punch-out', async (req, res) => {
   if (!user) {
   return res.status(400).json({ success: false, message: 'User not found' });
   }
-  Copy// Check if the user has already punched out or hasn't punched in yet
-  if (!user.firstCheckInTime) {
-    return res.status(400).json({ success: false, message: 'User has not punched in yet' });
-  }
+  // Check if the user has already punched out or hasn't punched in yet
+// Check if the user has already punched out or hasn't punched in yet
+if (!user.punchInTime) {
+  return res.status(400).json({ success: false, message: 'User has not punched in yet' });
+}
+
+if (user.punchOutTime) {
+  return res.status(400).json({ success: false, message: 'User has already punched out today' });
+}
+
+// Get the current time in UTC and convert to IST
+const now = new Date();
+const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
+const istTime = new Date(now.getTime() + istOffset);
+
+// Format the IST time
+const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
+
+// Set the punch-out time
+user.punchOutTime = formattedDateTime;
+user.lastCheckOutTime = formattedDateTime;
+
+// Calculate working hours for this session
+const punchInTime = new Date(user.punchInTime);
+const punchOutTime = new Date(formattedDateTime);
+const sessionWorkingHours = (punchOutTime - punchInTime) / (1000 * 60 * 60); // Convert ms to hours
+
+// Check for invalid times
+if (isNaN(sessionWorkingHours) || sessionWorkingHours < 0) {
+  return res.status(400).json({ success: false, message: 'Error in calculating working hours' });
+}
+
+// Initialize totalWorkingHours if not already set
+user.totalWorkingHours = user.totalWorkingHours || 0;
+
+// Add calculated working hours to total
+user.totalWorkingHours += sessionWorkingHours;
+
+// Reset punchInTime for the next session
+user.punchInTime = null;
+
+await user.save();
+
+res.json({
+  success: true,
+  message: 'Punched out successfully',
+  punchOutTime: user.punchOutTime,
   
-  if (user.punchOutTime) {
-    return res.status(400).json({ success: false, message: 'User has already punched out today' });
-  }
-  
-  // Get the current time in UTC and convert to IST
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
-  const istTime = new Date(now.getTime() + istOffset);
-  
-  // Format the IST time
-  const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
-  
-  // Set the punch-out time
-  user.punchOutTime = formattedDateTime;
-  user.lastCheckOutTime = formattedDateTime;
-  
-  // Calculate total working hours
-  const firstCheckInTime = new Date(user.firstCheckInTime);
-  const workingHours = (istTime - firstCheckInTime) / (1000 * 60 * 60); // Convert ms to hours
-  
-  // Check for invalid times
-  if (isNaN(workingHours) || workingHours < 0) {
-    return res.status(400).json({ success: false, message: 'Error in calculating working hours' });
-  }
-  
-  // Initialize totalWorkingHours if not already set
-  user.totalWorkingHours = user.totalWorkingHours || 0;
-  
-  // Add calculated working hours to total
-  user.totalWorkingHours += workingHours;
-  
-  // Reset punchInTime to prevent multiple punch-outs
-  user.punchInTime = null;
-  
-  await user.save();
-  
-  res.json({
-    success: true,
-    message: 'Punched out successfully',
-    punchOutTime: user.punchOutTime,
-    totalWorkingHours: user.totalWorkingHours.toFixed(2) // Round to 2 decimal places
-  });
-  } catch (error) {
+  totalWorkingHours: user.totalWorkingHours.toFixed(2) // Round to 2 decimal places
+});
+ } catch (error) {
   console.error('Error during punch-out:', error);
   res.status(500).json({ success: false, message: 'Server error' });
   }
