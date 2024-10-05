@@ -237,7 +237,7 @@ app.post('/update-attendance', async (req, res) => {
 
 
 app.post('/punch-in', async (req, res) => {
-  const { username, isInGeofence } = req.body;
+  const { username} = req.body;
 
   try {
     const user = await User.findOne({ username });
@@ -246,12 +246,11 @@ app.post('/punch-in', async (req, res) => {
     }
 
     // Ensure the user is within the geofence if necessary
-    if (!isInGeofence) {
-      return res.status(403).json({ success: false, message: 'Not in geofence' });
-    }
+
 
     const now = new Date();
-    const formattedDateTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
+    const formattedDateTime = now.toDateString() + ' ' + now.toTimeString().split(' ')[0];
+
     const todayDate = now.toISOString().split('T')[0];
 
     if (user.lastCheckInDate !== todayDate) {
@@ -276,6 +275,8 @@ app.post('/punch-in', async (req, res) => {
   }
 });
 
+
+
 app.post('/punch-out', async (req, res) => {
   const { username } = req.body;
 
@@ -290,16 +291,16 @@ app.post('/punch-out', async (req, res) => {
     }
 
     const now = new Date();
-    const formattedDateTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
+    const formattedDateTime = now.toDateString() + ' ' + now.toTimeString().split(' ')[0];
 
     user.punchOutTime = formattedDateTime;
     user.lastCheckOutTime = formattedDateTime;
 
     const punchInDate = new Date(user.punchInTime);
     const workedTimeInSeconds = (now.getTime() - punchInDate.getTime()) / 1000;
-    user.totalWorkingHours = (user.totalWorkingHours || 0) + workedTimeInSeconds; // Ensure initialization
+    user.totalWorkingHours += workedTimeInSeconds;
 
-    user.punchInTime = null; // Reset punchInTime after punching out
+    user.punchInTime = null;
     await user.save();
 
     res.json({ 
@@ -307,7 +308,7 @@ app.post('/punch-out', async (req, res) => {
       message: 'Punched Out successfully', 
       punchOutTime: user.punchOutTime,
       lastCheckOutTime: user.lastCheckOutTime,
-      totalWorkingHours: formatTime(user.totalWorkingHours) // Format the total working hours
+      totalWorkingHours: formatTime(user.totalWorkingHours)
     });
 
   } catch (error) {
