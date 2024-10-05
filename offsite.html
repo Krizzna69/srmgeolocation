@@ -167,7 +167,7 @@
             return;
         }
 
-        fetch(`https://geolocation-zmi9.onrender.com/check-approval-status?username=${username}`)
+        fetch(`https://srmgeolocation.onrender.com/check-approval-status?username=${username}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -209,7 +209,7 @@
         currentLocation: currentLocation ? { lat: currentLocation.lat, lng: currentLocation.lng } : null
     };
 
-    fetch('https://geolocation-zmi9.onrender.com/offsite-request', {
+    fetch('https://srmgeolocation.onrender.com/offsite-request', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
