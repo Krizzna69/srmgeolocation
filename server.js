@@ -280,65 +280,66 @@ app.post('/punch-in', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 app.post('/punch-out', async (req, res) => {
-  const { username } = req.body;
+  const { username, punchInTime, punchOutTime } = req.body;
+  
   try {
-  const user = await User.findOne({ username });
-  if (!user) {
-  return res.status(400).json({ success: false, message: 'User not found' });
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'User not found' });
+    }
+
+    // Function to parse only the time portion
+    const parseTime = (timeString) => {
+      const [datePart, timePart] = timeString.split(', ');
+      const [hour, minute, second] = timePart.split(':');
+      return new Date(1970, 0, 1, hour, minute, second); // Use a fixed date
+    };
+
+    const parsedPunchInTime = parseTime(punchInTime);
+    const parsedPunchOutTime = parseTime(punchOutTime);
+
+    // Validate the parsed times
+    if (isNaN(parsedPunchInTime.getTime()) || isNaN(parsedPunchOutTime.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid time format' });
+    }
+
+    // Calculate working minutes for this session
+    const sessionWorkingMinutes = (parsedPunchOutTime - parsedPunchInTime) / (1000 * 60); // Convert ms to minutes
+
+    // Check for invalid times
+    if (sessionWorkingMinutes < 0) {
+      return res.status(400).json({ success: false, message: 'Punch-out time is earlier than punch-in time' });
+    }
+
+    // Update user data
+    user.punchInTime = punchInTime;
+    user.punchOutTime = punchOutTime;
+    user.lastCheckOutTime = punchOutTime;
+
+    // Initialize totalWorkingMinutes if not already set
+    user.totalWorkingMinutes = user.totalWorkingMinutes || 0;
+
+    // Add calculated working minutes to total
+    user.totalWorkingMinutes += sessionWorkingMinutes;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Punched out successfully',
+      punchInTime: user.punchInTime,
+      punchOutTime: user.punchOutTime,
+      sessionWorkingMinutes: Math.round(sessionWorkingMinutes), // Round to the nearest whole number
+      totalWorkingMinutes: Math.round(user.totalWorkingMinutes) // Round to the nearest whole number
+    });
+
+  } catch (error) {
+    console.error('Error during punch-out:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-  // Check if the user has already punched out or hasn't punched in yet
-// Parse the input times
-const parsePunchTime = (timeString) => {
-  const [datePart, timePart] = timeString.split(', ');
-  const [day, month, year] = datePart.split('/');
-  const [hour, minute, second] = timePart.split(':');
-  return new Date(year, month - 1, day, hour, minute, second);
-};
-
-const parsedPunchInTime = parsePunchTime(punchInTime);
-const parsedPunchOutTime = parsePunchTime(punchOutTime);
-
-// Validate the parsed times
-if (isNaN(parsedPunchInTime.getTime()) || isNaN(parsedPunchOutTime.getTime())) {
-  return res.status(400).json({ success: false, message: 'Invalid time format' });
-}
-
-// Calculate working hours for this session
-const sessionWorkingHours = (parsedPunchOutTime - parsedPunchInTime) / (1000 * 60 * 60); // Convert ms to hours
-
-// Check for invalid times
-if (sessionWorkingHours < 0) {
-  return res.status(400).json({ success: false, message: 'Punch-out time is earlier than punch-in time' });
-}
-
-// Update user data
-user.punchInTime = punchInTime;
-user.punchOutTime = punchOutTime;
-user.lastCheckOutTime = punchOutTime;
-
-// Initialize totalWorkingHours if not already set
-user.totalWorkingHours = user.totalWorkingHours || 0;
-
-// Add calculated working hours to total
-user.totalWorkingHours += sessionWorkingHours;
-
-await user.save();
-
-res.json({
-  success: true,
-  message: 'Punched out successfully',
-  punchInTime: user.punchInTime,
-  punchOutTime: user.punchOutTime,
-  sessionWorkingHours: sessionWorkingHours.toFixed(2),
-  totalWorkingHours: user.totalWorkingHours.toFixed(2) // Round to 2 decimal places
 });
- } catch (error) {
-  console.error('Error during punch-out:', error);
-  res.status(500).json({ success: false, message: 'Server error' });
-  }
-  });
+
 
 
 // Route to get employee details by username
