@@ -279,67 +279,64 @@ app.post('/punch-in', async (req, res) => {
 
 app.post('/punch-out', async (req, res) => {
   const { username } = req.body;
+
   try {
-  const user = await User.findOne({ username });
-  if (!user) {
-  return res.status(400).json({ success: false, message: 'User not found' });
-  }
-  Copyif (!user.punchInTime) {
-    return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
-  }
-  
-  const now = new Date();
-  const formattedDateTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
-  
-  // Parse punch-in and punch-out times
-  const punchInDate = new Date(user.punchInTime);
-  const punchOutDate = now;
-  
-  // Calculate the time difference in milliseconds
-  let timeDiffMs = punchOutDate - punchInDate;
-  
-  // If punchOutTime is earlier than punchInTime, assume it's the next day
-  if (timeDiffMs < 0) {
-    timeDiffMs += 24 * 60 * 60 * 1000; // Add 24 hours in milliseconds
-  }
-  
-  // Convert milliseconds to hours
-  const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
-  
-  // Update user data
-  user.punchOutTime = formattedDateTime;
-  user.lastCheckOutTime = formattedDateTime;
-  
-  // Ensure totalWorkingHours is initialized if it doesn't exist
-  user.totalWorkingHours = (user.totalWorkingHours || 0) + timeDiffHours;
-  
-  // Reset punchInTime after punching out
-  user.punchInTime = null;
-  
-  await user.save();
-  
-  // Helper function to format hours into HH:MM:SS
-  const formatTime = (hours) => {
-    const totalSeconds = Math.floor(hours * 3600);
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-  
-  res.json({
-    success: true,
-    message: 'Punched Out successfully',
-    punchOutTime: user.punchOutTime,
-    lastCheckOutTime: user.lastCheckOutTime,
-    sessionWorkingHours: formatTime(timeDiffHours),
-    totalWorkingHours: formatTime(user.totalWorkingHours)
-  });
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'User not found' });
+    }
+
+    if (!user.punchInTime) {
+      return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
+    }
+
+    const now = new Date();
+    const formattedPunchOutTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
+
+    // Parse punch-in time
+    const punchInDate = new Date(user.punchInTime);
+    
+    // Calculate the time difference in milliseconds
+    const timeDiffMs = now - punchInDate;
+
+    // Convert milliseconds to hours
+    const timeDiffHours = timeDiffMs / (1000 * 60 * 60); // Total working hours
+
+    // Update user data
+    user.punchOutTime = formattedPunchOutTime;
+    user.lastCheckOutTime = formattedPunchOutTime;
+    
+    // Ensure totalWorkingHours is initialized if it doesn't exist
+    user.totalWorkingHours = (user.totalWorkingHours || 0) + timeDiffHours;
+
+    // Reset punchInTime after punching out
+    user.punchInTime = null;
+
+    await user.save();
+
+    // Helper function to format hours into HH:MM:SS
+    const formatTime = (hours) => {
+      const totalSeconds = Math.floor(hours * 3600);
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    res.json({
+      success: true,
+      message: 'Punched Out successfully',
+      punchOutTime: user.punchOutTime,
+      lastCheckOutTime: user.lastCheckOutTime,
+      sessionWorkingHours: formatTime(timeDiffHours),
+      totalWorkingHours: formatTime(user.totalWorkingHours)
+    });
+
   } catch (error) {
-  console.error('Error during punch-out:', error);
-  res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error during punch-out:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-  });
+});
 
 
 
