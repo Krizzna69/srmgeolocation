@@ -292,16 +292,32 @@ app.post('/punch-out', async (req, res) => {
     }
 
     const now = new Date();
-    const formattedDateTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
+    const formattedPunchOutTime = now.toTimeString().split(' ')[0]; // Format: HH:mm:ss
+    user.punchOutTime = formattedPunchOutTime;
+    user.lastCheckOutTime = formattedPunchOutTime;
 
-    user.punchOutTime = formattedDateTime;
-    user.lastCheckOutTime = formattedDateTime;
-
+    // Extract time from punchInTime
     const punchInDate = new Date(user.punchInTime);
-    const workedTimeInSeconds = (now - punchInDate) / 1000; // Calculate worked time in seconds
+    const punchInTime = punchInDate.toTimeString().split(' ')[0]; // Format: HH:mm:ss
+
+    // Calculate the worked time
+    const [punchInHours, punchInMinutes, punchInSeconds] = punchInTime.split(':').map(Number);
+    const [punchOutHours, punchOutMinutes, punchOutSeconds] = formattedPunchOutTime.split(':').map(Number);
+
+    // Convert times to total seconds
+    const punchInTotalSeconds = punchInHours * 3600 + punchInMinutes * 60 + punchInSeconds;
+    const punchOutTotalSeconds = punchOutHours * 3600 + punchOutMinutes * 60 + punchOutSeconds;
+
+    // Calculate worked time in seconds
+    let workedTimeInSeconds = punchOutTotalSeconds - punchInTotalSeconds;
+
+    // If the punch-out time is earlier than punch-in time, add 24 hours (86400 seconds)
+    if (workedTimeInSeconds < 0) {
+      workedTimeInSeconds += 86400; // Add one day in seconds
+    }
 
     // Ensure totalWorkingHours is initialized if it doesn't exist
-    user.totalWorkingHours = (user.totalWorkingHours || 0) + workedTimeInSeconds;
+    user.totalWorkingHours = (user.totalWorkingHours || 0) + workedTimeInSeconds / 3600; // Convert seconds to hours
 
     // Reset punchInTime after punching out
     user.punchInTime = null;
@@ -313,7 +329,7 @@ app.post('/punch-out', async (req, res) => {
       message: 'Punched Out successfully', 
       punchOutTime: user.punchOutTime,
       lastCheckOutTime: user.lastCheckOutTime,
-      totalWorkingHours: formatTime(user.totalWorkingHours) // Format the total working hours
+      totalWorkingHours: user.totalWorkingHours.toFixed(2) // Return total working hours rounded to 2 decimal places
     });
 
   } catch (error) {
@@ -321,7 +337,6 @@ app.post('/punch-out', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 
 
