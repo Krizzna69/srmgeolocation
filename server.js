@@ -247,7 +247,7 @@ app.post('/punch-in', async (req, res) => {
     const now = new Date();
     const formattedTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
 
-    user.punchInTime = formattedTime;
+    user.punchInTime = formattedTime; // Store only time
     user.firstCheckInTime = user.firstCheckInTime || formattedTime; // Set first check-in time if not set
     user.lastCheckOutTime = null; // Reset last check-out time
     await user.save();
@@ -265,7 +265,6 @@ app.post('/punch-in', async (req, res) => {
   }
 });
 
-// Punch Out Route
 app.post('/punch-out', async (req, res) => {
   const { username } = req.body;
 
@@ -299,9 +298,9 @@ app.post('/punch-out', async (req, res) => {
     }
 
     // Update user data
-    user.punchOutTime = formattedPunchOutTime;
+    user.punchOutTime = formattedPunchOutTime; // Store only time
     user.lastCheckOutTime = formattedPunchOutTime;
-    user.totalWorkingHours += totalWorkingSeconds; // Accumulate total working hours
+    user.totalWorkingHours = (user.totalWorkingHours || 0) + totalWorkingSeconds; // Accumulate total working hours
 
     // Reset punchInTime after punching out
     user.punchInTime = null;
@@ -330,6 +329,7 @@ app.post('/punch-out', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 // Route to get employee details by username
 app.get('/employee-details/:username', async (req, res) => {
   try {
