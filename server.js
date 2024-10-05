@@ -232,87 +232,86 @@ app.post('/update-attendance', async (req, res) => {
 // Punch-In Endpoint
 app.post('/punch-in', async (req, res) => {
   const { username } = req.body;
+
   try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found' });
-    }
-    const now = new Date();
-    const formattedTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
-    user.punchInTime = formattedTime; // Store only time
-    user.firstCheckInTime = user.firstCheckInTime || formattedTime; // Set first check-in time if not set
-    user.lastCheckOutTime = null; // Reset last check-out time
-    await user.save();
-    res.json({
-      success: true,
-      message: 'Punched In successfully',
-      punchInTime: user.punchInTime,
-      firstCheckInTime: user.firstCheckInTime
+      const user = await User.findOne({ username });
+      
+      if (!user) return res.status(400).json({ success: false, message: 'User not found' });
+
+      const now = new Date();
+      const formattedTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
+      
+      user.punchInTime = formattedTime; // Store only time
+      user.firstCheckInTime = user.firstCheckInTime || formattedTime; // Set first check-in time if not set
+      user.lastCheckOutTime = null; // Reset last check-out time
+      
+      await user.save();
+      
+      res.json({
+        success: true,
+        message: 'Punched In successfully',
+        punchInTime: user.punchInTime,
+        firstCheckInTime: user.firstCheckInTime
     });
+    
   } catch (error) {
     console.error('Error during punch-in:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+    res.status(500).json({ success: false, message:'Server error' });
+ }
 });
 
-// Punch-Out Endpoint
+// Punch Out endpoint
 app.post('/punch-out', async (req, res) => {
-  const { username } = req.body;
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found' });
-    }
-    if (!user.punchInTime) {
-      return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
-    }
-    const now = new Date();
-    const formattedPunchOutTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
-    
-    // Parse punch-in and punch-out times
-    const punchInParts = user.punchInTime.split(':').map(Number);
-    const punchOutParts = formattedPunchOutTime.split(':').map(Number);
-    
-    // Convert to seconds
-    const punchInSeconds = punchInParts[0] * 3600 + punchInParts[1] * 60 + punchInParts[2];
-    const punchOutSeconds = punchOutParts[0] * 3600 + punchOutParts[1] * 60 + punchOutParts[2];
-    
-    // Calculate total working seconds
-    let totalWorkingSeconds = punchOutSeconds - punchInSeconds;
-    
-    // Handle overnight shifts (if punch out time is earlier than punch in time)
-    if (totalWorkingSeconds < 0) {
-      totalWorkingSeconds += 24 * 3600; // Add 24 hours in seconds
-    }
-    
-    // Update user data
-    user.punchOutTime = formattedPunchOutTime; // Store only time
-    user.lastCheckOutTime = formattedPunchOutTime;
-    user.totalWorkingHours = (user.totalWorkingHours || 0) + totalWorkingSeconds; // Accumulate total working hours
-    user.punchInTime = null; // Reset punchInTime after punching out
-    await user.save();
-    
-    // Helper function to format seconds into HH:MM:SS
-    const formatTime = (seconds) => {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = seconds % 60;
-      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
-    
-    res.json({
-      success: true,
-      message: 'Punched Out successfully',
-      punchOutTime: user.punchOutTime,
-      lastCheckOutTime: user.lastCheckOutTime,
-      sessionWorkingHours: formatTime(totalWorkingSeconds),
-      totalWorkingHours: formatTime(user.totalWorkingHours)
+ const { username } = req.body;
+
+ try {
+     const user = await User.findOne({ username });
+     if (!user) return res.status(400).json({ success:false,message:'User not found' });
+     if (!user.punchInTime) return res.status(400).json({ success:false,message:'Punch In first before Punching Out' });
+
+     const now = new Date();
+     const formattedPunchOutTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
+
+     // Parse punch-in and punch-out times
+     const punchInParts = user.punchInTime.split(':').map(Number);
+     const punchOutParts = formattedPunchOutTime.split(':').map(Number);
+
+     // Convert to seconds
+     const punchInSeconds =
+         punchInParts[0] * 3600 + punchInParts[1] * 60 + punchInParts[2];
+     const punchOutSeconds =
+         punchOutParts[0] * 3600 + punchOutParts[1] * 60 + punchOutParts[2];
+
+     // Calculate total working seconds
+     let totalWorkingSeconds = punchOutSeconds - punchInSeconds;
+
+     // Handle overnight shifts (if punch out time is earlier than punch in time)
+     if (totalWorkingSeconds < 0) totalWorkingSeconds += 24 * 3600; // Add 24 hours in seconds
+
+     // Update user data
+     user.punchOutTime = formattedPunchOutTime; // Store only time
+     user.lastCheckOutTime = formattedPunchOutTime;
+
+     // Accumulate total working hours
+     user.totalWorkingHours += totalWorkingSeconds;
+
+     user.punchInTime = null; // Reset punchInTime after punching out
+
+     await user.save();
+
+     res.json({
+         success:true,
+         message:'Punched Out successfully',
+         punchOutTime:user.punchOutTime,
+         lastCheckOutTime:user.lastCheckOutTime,
+         totalWorkingHours:user.totalWorkingHours 
     });
-  } catch (error) {
-    console.error('Error during punch-out:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+ } catch (error) {
+    console.error('Error during punch-out:', error.message || error);
+    res.status(500).json({ success:false,message:'Server error',error:error.message });
+ }
 });
+
 
 // Route to get employee details by username
 app.get('/employee-details/:username', async (req, res) => {

@@ -130,19 +130,17 @@
                 return;
             }
 
-            const punchInTime = new Date().toLocaleTimeString(); // Get current time in HH:mm:ss format
-
             fetch('https://geolocation-zmi9.onrender.com/punch-in', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, punchInTime }), // Send only the time
+                body: JSON.stringify({ username }), // Send only the username
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Punched In at ' + punchInTime);
+                    alert('Punched In successfully');
                     hasPunchedInToday = true;
                     localStorage.setItem('lastPunchInDate', currentDate);
                     showAttendanceMarkedPopup();
@@ -152,6 +150,7 @@
             })
             .catch(error => {
                 alert('An error occurred. Please try again.');
+                console.error(error);
             });
         }
 
@@ -161,19 +160,17 @@
                 return;
             }
 
-            const punchOutTime = new Date().toLocaleTimeString(); // Get current time in HH:mm:ss format
-
             fetch('https://geolocation-zmi9.onrender.com/punch-out', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, punchOutTime }), // Send only the time
+                body: JSON.stringify({ username }), // Send only the username
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Punched Out at ' + punchOutTime);
+                    alert('Punched Out successfully');
                     showAttendanceMarkedPopup();
                 } else {
                     alert('Error: ' + data.message);
@@ -181,10 +178,12 @@
             })
             .catch(error => {
                 alert('An error occurred. Please try again.');
+                console.error(error);
             });
         }
 
         window.initMap = initMap;
+
     </script>
     <script
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyASAMgt4KkC1Hr4bbf8A8JBGwAcpwlAv6o&callback=initMap&v=weekly&libraries=geometry"
