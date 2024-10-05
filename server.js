@@ -234,12 +234,7 @@ app.post('/update-attendance', async (req, res) => {
 
 // Punch In endpoint
 // Utility function to format seconds into hours and minutes
-const formatTime = (totalSeconds) => {
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours}h ${minutes}m`;
-};
+
 
 app.post('/punch-in', async (req, res) => {
   const { username, isInGeofence } = req.body;
