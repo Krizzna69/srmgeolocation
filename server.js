@@ -395,9 +395,10 @@ app.post('/offsite-request', async (req, res) => {
       username,
       fromTime,
       leavingTime,
-      location,
-      currentLocation// Store placeName in the database
+      location, // Store place name
+      currentLocation: { lat, lng } // Store coordinates (latitude and longitude)
     });
+    
 
     await offsiteRequest.save();
     res.status(200).json({ success: true, message: 'Offsite work request submitted successfully!' });
