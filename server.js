@@ -235,7 +235,6 @@ app.post('/update-attendance', async (req, res) => {
 
 // Punch In endpoint
 // Utility function to format seconds into hours and minutes
-
 app.post('/punch-in', async (req, res) => {
   const { username } = req.body;
 
@@ -246,16 +245,11 @@ app.post('/punch-in', async (req, res) => {
     }
 
     const now = new Date();
-    const formattedDateTime = now.toDateString() + ' ' + now.toTimeString().split(' ')[0];
-    const todayDate = now.toISOString().split('T')[0];
+    const formattedTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
 
-    if (user.lastCheckInDate !== todayDate) {
-      user.firstCheckInTime = formattedDateTime;
-      user.lastCheckOutTime = null;
-      user.lastCheckInDate = todayDate;
-    }
-
-    user.punchInTime = formattedDateTime;
+    user.punchInTime = formattedTime;
+    user.firstCheckInTime = user.firstCheckInTime || formattedTime; // Set first check-in time if not set
+    user.lastCheckOutTime = null; // Reset last check-out time
     await user.save();
 
     res.json({
@@ -266,11 +260,12 @@ app.post('/punch-in', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error('Error during punch-in:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
+// Punch Out Route
 app.post('/punch-out', async (req, res) => {
   const { username } = req.body;
 
@@ -285,19 +280,25 @@ app.post('/punch-out', async (req, res) => {
     }
 
     const now = new Date();
-    const formattedPunchOutTime = now.toISOString().replace('T', ' ').substring(0, 19);
+    const formattedPunchOutTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
 
-    const punchInDate = new Date(user.punchInTime);
-    const punchOutDate = now;
+    // Parse punch-in and punch-out times
+    const punchInParts = user.punchInTime.split(':').map(Number);
+    const punchOutParts = formattedPunchOutTime.split(':').map(Number);
 
-    // Calculate the total working seconds
-    let totalWorkingSeconds = (punchOutDate - punchInDate) / 1000;
+    // Convert to seconds
+    const punchInSeconds = punchInParts[0] * 3600 + punchInParts[1] * 60 + punchInParts[2];
+    const punchOutSeconds = punchOutParts[0] * 3600 + punchOutParts[1] * 60 + punchOutParts[2];
 
-    // Handle overnight shifts
+    // Calculate total working seconds
+    let totalWorkingSeconds = punchOutSeconds - punchInSeconds;
+
+    // Handle overnight shifts (if punch out time is earlier than punch in time)
     if (totalWorkingSeconds < 0) {
       totalWorkingSeconds += 24 * 3600; // Add 24 hours in seconds
     }
 
+    // Update user data
     user.punchOutTime = formattedPunchOutTime;
     user.lastCheckOutTime = formattedPunchOutTime;
     user.totalWorkingHours += totalWorkingSeconds; // Accumulate total working hours
@@ -329,7 +330,6 @@ app.post('/punch-out', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 // Route to get employee details by username
 app.get('/employee-details/:username', async (req, res) => {
   try {
