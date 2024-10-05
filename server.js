@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema({
   punchOutTime: String,
   firstCheckInTime: String,
   lastCheckOutTime: String,
-  totalWorkingHours: String,
+  totalWorkingHours: { type: Number, default: 0 },
   lastCheckInDate: String,
   isApproved: { type: Boolean, default: false },
   location: {
@@ -236,9 +236,8 @@ app.post('/update-attendance', async (req, res) => {
 // Punch In endpoint
 // Utility function to format seconds into hours and minutes
 
-
 app.post('/punch-in', async (req, res) => {
-  const { username} = req.body;
+  const { username } = req.body;
 
   try {
     const user = await User.findOne({ username });
@@ -246,12 +245,8 @@ app.post('/punch-in', async (req, res) => {
       return res.status(400).json({ success: false, message: 'User not found' });
     }
 
-    // Ensure the user is within the geofence if necessary
-
-
     const now = new Date();
     const formattedDateTime = now.toDateString() + ' ' + now.toTimeString().split(' ')[0];
-
     const todayDate = now.toISOString().split('T')[0];
 
     if (user.lastCheckInDate !== todayDate) {
@@ -263,19 +258,18 @@ app.post('/punch-in', async (req, res) => {
     user.punchInTime = formattedDateTime;
     await user.save();
 
-    res.json({ 
-      success: true, 
-      message: 'Punched In successfully', 
+    res.json({
+      success: true,
+      message: 'Punched In successfully',
       punchInTime: user.punchInTime,
       firstCheckInTime: user.firstCheckInTime
     });
 
   } catch (error) {
-    console.error(error); // Log the error for debugging
+    console.error(error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 app.post('/punch-out', async (req, res) => {
   const { username } = req.body;
@@ -291,30 +285,22 @@ app.post('/punch-out', async (req, res) => {
     }
 
     const now = new Date();
-    const formattedPunchOutTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
+    const formattedPunchOutTime = now.toISOString().replace('T', ' ').substring(0, 19);
 
-    // Get just the time part from punch-in time
-    const punchInTimeParts = user.punchInTime.split(' ')[1].split(':');
-    const punchOutTimeParts = now.toTimeString().split(':');
+    const punchInDate = new Date(user.punchInTime);
+    const punchOutDate = now;
 
-    // Convert to seconds
-    const punchInSeconds = (+punchInTimeParts[0]) * 3600 + (+punchInTimeParts[1]) * 60 + (+punchInTimeParts[2]);
-    const punchOutSeconds = (+punchOutTimeParts[0]) * 3600 + (+punchOutTimeParts[1]) * 60 + (+punchOutTimeParts[2]);
-
-    // Calculate total working seconds
-    let totalWorkingSeconds = punchOutSeconds - punchInSeconds;
+    // Calculate the total working seconds
+    let totalWorkingSeconds = (punchOutDate - punchInDate) / 1000;
 
     // Handle overnight shifts
     if (totalWorkingSeconds < 0) {
       totalWorkingSeconds += 24 * 3600; // Add 24 hours in seconds
     }
 
-    // Update user data
     user.punchOutTime = formattedPunchOutTime;
     user.lastCheckOutTime = formattedPunchOutTime;
-    
-    // Ensure totalWorkingHours is initialized if it doesn't exist
-    user.totalWorkingHours = user.lastCheckOutTime - user.firstCheckInTime; // Convert to hours
+    user.totalWorkingHours += totalWorkingSeconds; // Accumulate total working hours
 
     // Reset punchInTime after punching out
     user.punchInTime = null;
@@ -335,7 +321,7 @@ app.post('/punch-out', async (req, res) => {
       punchOutTime: user.punchOutTime,
       lastCheckOutTime: user.lastCheckOutTime,
       sessionWorkingHours: formatTime(totalWorkingSeconds),
-      totalWorkingHours: formatTime(user.totalWorkingHours * 3600) // Convert back to seconds for formatting
+      totalWorkingHours: formatTime(user.totalWorkingHours)
     });
 
   } catch (error) {
@@ -343,7 +329,6 @@ app.post('/punch-out', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 // Route to get employee details by username
 app.get('/employee-details/:username', async (req, res) => {
