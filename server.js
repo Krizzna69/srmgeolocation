@@ -314,7 +314,7 @@ app.post('/punch-out', async (req, res) => {
     user.lastCheckOutTime = formattedPunchOutTime;
     
     // Ensure totalWorkingHours is initialized if it doesn't exist
-    user.totalWorkingHours = (user.totalWorkingHours || 0) + (totalWorkingSeconds / 3600); // Convert to hours
+    user.totalWorkingHours = user.lastCheckOutTime - user.firstCheckInTime; // Convert to hours
 
     // Reset punchInTime after punching out
     user.punchInTime = null;
