@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema({
   punchOutTime: String,
   firstCheckInTime: String,
   lastCheckOutTime: String,
-  totalWorkingHours: { type: Number, default: 0 },
+  totalWorkingHours: String,
   lastCheckInDate: String,
   isApproved: { type: Boolean, default: false },
   location: {
