@@ -212,7 +212,10 @@
                 leavingTime,
                 location,
                 username: localStorage.getItem('username'),
-                currentLocation // Sending lat/lng
+                currentLocation: { // Ensure both lat and lng are sent correctly
+        lat: currentLocation.lat,
+        lng: currentLocation.lng
+    }
             };
 
             console.log('Offsite Data:', offsiteData); // Log the data being sent

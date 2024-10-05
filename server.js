@@ -380,7 +380,7 @@ app.get('/get-attendance', async (req, res) => {
 
 app.post('/offsite-request', async (req, res) => {
   try {
-    const { fromTime, leavingTime, location, username } = req.body; // Use placeName instead of currentLocation
+    const { fromTime, leavingTime, location,currentLocation, username } = req.body; // Use placeName instead of currentLocation
 
     if (!username) {
       return res.status(400).json({ success: false, message: 'Username is required' });
