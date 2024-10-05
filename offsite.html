@@ -187,7 +187,6 @@
                 document.getElementById('errorMessage').textContent = `Error: ${error.message}`;
             });
     }
-
     function submitOffsiteWork() {
     const fromTime = document.getElementById('fromTime').value;
     const leavingTime = document.getElementById('leavingTime').value;
@@ -208,55 +207,35 @@
 
             console.log('Current Location:', currentLocation);
 
-            // Call Geocoding API to get place name
-            const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${currentLocation.lat},${currentLocation.lng}&key=YOUR_API_KEY`;
+            const offsiteData = {
+                fromTime,
+                leavingTime,
+                location,
+                username: localStorage.getItem('username'),
+                currentLocation // Sending lat/lng
+            };
 
-            fetch(geocodeUrl)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'OK') {
-                        const placeName = data.results[0].formatted_address; // Get the formatted address
-                        console.log('Place Name:', placeName);
+            console.log('Offsite Data:', offsiteData); // Log the data being sent
 
-                        const offsiteData = {
-                            fromTime,
-                            leavingTime,
-                            location,
-                            username: localStorage.getItem('username'),
-                            currentLocation // Send the place name instead of lat/lng
-                        };
-
-                        console.log('Offsite Data:', offsiteData); // Log the data being sent
-
-                        fetch('https://geolocation-zmi9.onrender.com/offsite-request', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(offsiteData),
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert('Offsite work request submitted successfully!');
-                            } else {
-                                alert('Error: ' + data.message);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Failed to submit offsite request');
-                        });
-                    } else {
-                        console.error('Geocoding error:', data.status);
-                        alert('Unable to retrieve the place name. Please try again.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Geocoding fetch error:', error);
-                    alert('Failed to retrieve place name');
-                });
-
+            fetch('https://geolocation-zmi9.onrender.com/offsite-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(offsiteData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Offsite work request submitted successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to submit offsite request');
+            });
         }, (error) => {
             console.error('Geolocation error:', error);
             alert('Unable to retrieve your location. Please try again.');
@@ -265,7 +244,6 @@
         alert('Geolocation is not supported by this browser.');
     }
 }
-
 
 
 </script>
