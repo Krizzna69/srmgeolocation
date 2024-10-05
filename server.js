@@ -233,36 +233,36 @@ app.post('/update-attendance', async (req, res) => {
 });
 
 // Punch In endpoint
+// Utility function to format seconds into hours and minutes
+const formatTime = (totalSeconds) => {
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+};
+
 app.post('/punch-in', async (req, res) => {
-  const { username } = req.body;
-  
+  const { username, isInGeofence } = req.body;
+
   try {
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(400).json({ success: false, message: 'User not found' });
     }
 
-    // Get the current time in UTC and convert to IST
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
-    const istTime = new Date(now.getTime() + istOffset);
-
-    // Format the IST time
-    const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
-
-    // Get today's date in ISO format adjusted for IST
-    const todayDate = istTime.toISOString().split('T')[0];
-
-    // Check if the user has already punched in today
-    if (user.lastCheckInDate === todayDate) {
-      return res.status(400).json({ success: false, message: 'Already punched in today' });
+    // Ensure the user is within the geofence if necessary
+    if (!isInGeofence) {
+      return res.status(403).json({ success: false, message: 'Not in geofence' });
     }
+
+    const now = new Date();
+    const formattedDateTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
+    const todayDate = now.toISOString().split('T')[0];
 
     if (user.lastCheckInDate !== todayDate) {
       user.firstCheckInTime = formattedDateTime;
       user.lastCheckOutTime = null;
       user.lastCheckInDate = todayDate;
-      user.attendance += 1; // Increment attendance only once per day
     }
 
     user.punchInTime = formattedDateTime;
@@ -272,73 +272,55 @@ app.post('/punch-in', async (req, res) => {
       success: true, 
       message: 'Punched In successfully', 
       punchInTime: user.punchInTime,
-      firstCheckInTime: user.firstCheckInTime 
+      firstCheckInTime: user.firstCheckInTime
     });
 
   } catch (error) {
-    console.error('Error during punch-in:', error);
+    console.error(error); // Log the error for debugging
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 app.post('/punch-out', async (req, res) => {
-  const { username, punchInTime, punchOutTime } = req.body;
-  
+  const { username } = req.body;
+
   try {
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(400).json({ success: false, message: 'User not found' });
     }
 
-    // Function to parse only the time portion
-    const parseTime = (timeString) => {
-      const [datePart, timePart] = timeString.split(', ');
-      const [hour, minute, second] = timePart.split(':');
-      return new Date(1970, 0, 1, hour, minute, second); // Use a fixed date
-    };
-
-    const parsedPunchInTime = parseTime(punchInTime);
-    const parsedPunchOutTime = parseTime(punchOutTime);
-
-    // Validate the parsed times
-    if (isNaN(parsedPunchInTime.getTime()) || isNaN(parsedPunchOutTime.getTime())) {
-      return res.status(400).json({ success: false, message: 'Invalid time format' });
+    if (!user.punchInTime) {
+      return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
     }
 
-    // Calculate working minutes for this session
-    const sessionWorkingMinutes = (parsedPunchOutTime - parsedPunchInTime) / (1000 * 60); // Convert ms to minutes
+    const now = new Date();
+    const formattedDateTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
 
-    // Check for invalid times
-    if (sessionWorkingMinutes < 0) {
-      return res.status(400).json({ success: false, message: 'Punch-out time is earlier than punch-in time' });
-    }
+    user.punchOutTime = formattedDateTime;
+    user.lastCheckOutTime = formattedDateTime;
 
-    // Update user data
-    user.punchInTime = punchInTime;
-    user.punchOutTime = punchOutTime;
-    user.lastCheckOutTime = punchOutTime;
+    const punchInDate = new Date(user.punchInTime);
+    const workedTimeInSeconds = (now.getTime() - punchInDate.getTime()) / 1000;
+    user.totalWorkingHours = (user.totalWorkingHours || 0) + workedTimeInSeconds; // Ensure initialization
 
-    // Initialize totalWorkingMinutes if not already set
-    user.totalWorkingMinutes = user.totalWorkingMinutes || 0;
-
-    // Add calculated working minutes to total
-    user.totalWorkingMinutes += sessionWorkingMinutes;
-
+    user.punchInTime = null; // Reset punchInTime after punching out
     await user.save();
 
-    res.json({
-      success: true,
-      message: 'Punched out successfully',
-      punchInTime: user.punchInTime,
+    res.json({ 
+      success: true, 
+      message: 'Punched Out successfully', 
       punchOutTime: user.punchOutTime,
-      sessionWorkingMinutes: Math.round(sessionWorkingMinutes), // Round to the nearest whole number
-      totalWorkingMinutes: Math.round(user.totalWorkingMinutes) // Round to the nearest whole number
+      lastCheckOutTime: user.lastCheckOutTime,
+      totalWorkingHours: formatTime(user.totalWorkingHours) // Format the total working hours
     });
 
   } catch (error) {
-    console.error('Error during punch-out:', error);
+    console.error(error); // Log the error for debugging
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 
 
