@@ -293,33 +293,39 @@ app.post('/punch-out', async (req, res) => {
     const now = new Date();
     const formattedPunchOutTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
 
-    // Parse punch-in time
-    const punchInDate = new Date(user.punchInTime);
-    
-    // Calculate the time difference in milliseconds
-    const timeDiffMs = now - punchInDate;
+    // Get just the time part from punch-in time
+    const punchInTimeParts = user.punchInTime.split(' ')[1].split(':');
+    const punchOutTimeParts = now.toTimeString().split(':');
 
-    // Convert milliseconds to hours
-    const timeDiffHours = timeDiffMs / (1000 * 60 * 60); // Total working hours
+    // Convert to seconds
+    const punchInSeconds = (+punchInTimeParts[0]) * 3600 + (+punchInTimeParts[1]) * 60 + (+punchInTimeParts[2]);
+    const punchOutSeconds = (+punchOutTimeParts[0]) * 3600 + (+punchOutTimeParts[1]) * 60 + (+punchOutTimeParts[2]);
+
+    // Calculate total working seconds
+    let totalWorkingSeconds = punchOutSeconds - punchInSeconds;
+
+    // Handle overnight shifts
+    if (totalWorkingSeconds < 0) {
+      totalWorkingSeconds += 24 * 3600; // Add 24 hours in seconds
+    }
 
     // Update user data
     user.punchOutTime = formattedPunchOutTime;
     user.lastCheckOutTime = formattedPunchOutTime;
     
     // Ensure totalWorkingHours is initialized if it doesn't exist
-    user.totalWorkingHours = (user.totalWorkingHours || 0) + timeDiffHours;
+    user.totalWorkingHours = (user.totalWorkingHours || 0) + (totalWorkingSeconds / 3600); // Convert to hours
 
     // Reset punchInTime after punching out
     user.punchInTime = null;
 
     await user.save();
 
-    // Helper function to format hours into HH:MM:SS
-    const formatTime = (hours) => {
-      const totalSeconds = Math.floor(hours * 3600);
-      const h = Math.floor(totalSeconds / 3600);
-      const m = Math.floor((totalSeconds % 3600) / 60);
-      const s = totalSeconds % 60;
+    // Helper function to format seconds into HH:MM:SS
+    const formatTime = (seconds) => {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
       return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
@@ -328,8 +334,8 @@ app.post('/punch-out', async (req, res) => {
       message: 'Punched Out successfully',
       punchOutTime: user.punchOutTime,
       lastCheckOutTime: user.lastCheckOutTime,
-      sessionWorkingHours: formatTime(timeDiffHours),
-      totalWorkingHours: formatTime(user.totalWorkingHours)
+      sessionWorkingHours: formatTime(totalWorkingSeconds),
+      totalWorkingHours: formatTime(user.totalWorkingHours * 3600) // Convert back to seconds for formatting
     });
 
   } catch (error) {
@@ -337,7 +343,6 @@ app.post('/punch-out', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 
 // Route to get employee details by username
