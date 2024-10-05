@@ -72,9 +72,10 @@ const adminCredentials = {
 
 
 
-const formatTime = (seconds) => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
+const formatTime = (totalSeconds) => {
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
   return `${hours}h ${minutes}m`;
 };
 
@@ -291,16 +292,20 @@ app.post('/punch-out', async (req, res) => {
     }
 
     const now = new Date();
-    const formattedDateTime = now.toDateString() + ' ' + now.toTimeString().split(' ')[0];
+    const formattedDateTime = now.toISOString().replace('T', ' ').substring(0, 19); // Format: YYYY-MM-DD HH:mm:ss
 
     user.punchOutTime = formattedDateTime;
     user.lastCheckOutTime = formattedDateTime;
 
     const punchInDate = new Date(user.punchInTime);
-    const workedTimeInSeconds = (now.getTime() - punchInDate.getTime()) / 1000;
-    user.totalWorkingHours += workedTimeInSeconds;
+    const workedTimeInSeconds = (now - punchInDate) / 1000; // Calculate worked time in seconds
 
+    // Ensure totalWorkingHours is initialized if it doesn't exist
+    user.totalWorkingHours = (user.totalWorkingHours || 0) + workedTimeInSeconds;
+
+    // Reset punchInTime after punching out
     user.punchInTime = null;
+
     await user.save();
 
     res.json({ 
@@ -308,14 +313,15 @@ app.post('/punch-out', async (req, res) => {
       message: 'Punched Out successfully', 
       punchOutTime: user.punchOutTime,
       lastCheckOutTime: user.lastCheckOutTime,
-      totalWorkingHours: formatTime(user.totalWorkingHours)
+      totalWorkingHours: formatTime(user.totalWorkingHours) // Format the total working hours
     });
 
   } catch (error) {
-    console.error(error); // Log the error for debugging
+    console.error('Error during punch-out:', error); // Log the error for debugging
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 
 
