@@ -31,7 +31,7 @@
         // Function to fetch attendance data from the backend
         async function fetchAttendanceData(username, month, year) {
             try {
-                const response = await fetch(`https://srmgeolocation.onrender.com/attendance-data?username=${username}&month=${month}&year=${year}`);
+                const response = await fetch(`https://geolocation-zmi9.onrender.com/attendance-data?username=${username}&month=${month}&year=${year}`);
                 const data = await response.json();
 
 

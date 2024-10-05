@@ -114,7 +114,7 @@
                 return;
             }
 
-            fetch(`https://srmgeolocation.onrender.com/employee-details/${username}`) 
+            fetch(`https://geolocation-zmi9.onrender.com/employee-details/${username}`) 
                 .then(response => response.json())
                 .then(employee => {
                     const tableBody = document.getElementById('employeeTableBody');

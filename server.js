@@ -31,8 +31,8 @@ const offsiteRequestSchema = new mongoose.Schema({
   fromTime: { type: Date, required: true },
   leavingTime: { type: Date, required: true },
   location: { type: String, required: true },
-  currentLocation: { lat: Number, lon: Number },
-  submittedAt: { type: Date, default: Date.now },
+  placeName: { type: String, required: true }, // New field for the place name
+   // Retain this if you still want to store coordinates
   isApproved: { type: Boolean, default: null } // null = pending, true = approved, false = disapproved
 });
 const OffsiteRequest = mongoose.model('OffsiteRequest', offsiteRequestSchema);
@@ -381,18 +381,19 @@ app.get('/get-attendance', async (req, res) => {
 
 app.post('/offsite-request', async (req, res) => {
   try {
-    const { fromTime, leavingTime, location, currentLocation, username } = req.body;
+    const { fromTime, leavingTime, location, placeName, username } = req.body; // Use placeName instead of currentLocation
 
     if (!username) {
       return res.status(400).json({ success: false, message: 'Username is required' });
     }
 
+    // Create a new OffsiteRequest with the placeName
     const offsiteRequest = new OffsiteRequest({
       username,
       fromTime,
       leavingTime,
       location,
-      currentLocation
+      placeName // Store placeName in the database
     });
 
     await offsiteRequest.save();
@@ -402,6 +403,7 @@ app.post('/offsite-request', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to submit offsite request' });
   }
 });
+
 
 app.get('/check-approval-status', async (req, res) => {
   try {

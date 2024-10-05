@@ -167,7 +167,7 @@
             return;
         }
 
-        fetch(`https://srmgeolocation.onrender.com/check-approval-status?username=${username}`)
+        fetch(`https://geolocation-zmi9.onrender.com/check-approval-status?username=${username}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -198,37 +198,74 @@
         return;
     }
 
-    // Capture both lat and lng
-    const currentLocation = userMarker ? userMarker.getPosition().toJSON() : null;
+    // Get current location when submitting the form
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const currentLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
 
-    const offsiteData = {
-        fromTime,
-        leavingTime,
-        location,
-        username: localStorage.getItem('username'),
-        currentLocation: currentLocation ? { lat: currentLocation.lat, lng: currentLocation.lng } : null
-    };
+            console.log('Current Location:', currentLocation);
 
-    fetch('https://srmgeolocation.onrender.com/offsite-request', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(offsiteData),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Offsite work request submitted successfully!');
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to submit offsite request');
-    });
+            // Call Geocoding API to get place name
+            const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${currentLocation.lat},${currentLocation.lng}&key=YOUR_API_KEY`;
+
+            fetch(geocodeUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        const placeName = data.results[0].formatted_address; // Get the formatted address
+                        console.log('Place Name:', placeName);
+
+                        const offsiteData = {
+                            fromTime,
+                            leavingTime,
+                            location,
+                            username: localStorage.getItem('username'),
+                            placeName // Send the place name instead of lat/lng
+                        };
+
+                        console.log('Offsite Data:', offsiteData); // Log the data being sent
+
+                        fetch('https://geolocation-zmi9.onrender.com/offsite-request', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(offsiteData),
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Offsite work request submitted successfully!');
+                            } else {
+                                alert('Error: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Failed to submit offsite request');
+                        });
+                    } else {
+                        console.error('Geocoding error:', data.status);
+                        alert('Unable to retrieve the place name. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Geocoding fetch error:', error);
+                    alert('Failed to retrieve place name');
+                });
+
+        }, (error) => {
+            console.error('Geolocation error:', error);
+            alert('Unable to retrieve your location. Please try again.');
+        });
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
 }
+
 
 
 </script>
