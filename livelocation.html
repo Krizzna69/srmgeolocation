@@ -3,36 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Attendance Tracking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body{
-            font-family: 'Poppins';
+        body {
+            font-family: 'Poppins', sans-serif;
         }
         #map {
-            margin-top:50px;
+            margin-top: 50px;
             height: 60vh;
             width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
         }
-        #buttonContainer {
+        #footer {
             position: absolute;
-            top: 10px;
-            right: 20px;
+            bottom: 10px;
+            left: 10px;
             z-index: 5;
-            
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            display: flex;
-            flex-direction: column;
-       
         }
-        .action-button, #myActivityButton, #hideMapButton, #offsiteWorkButton, #onsiteWorkButton {
+        .action-button {
             margin-bottom: 10px;
             padding: 10px;
             background-color: #6a11cb;
@@ -42,16 +32,8 @@
             cursor: pointer;
             font-size: 16px;
         }
-        .action-button:hover, #myActivityButton:hover, #hideMapButton:hover {
+        .action-button:hover {
             background-color: #4a0dbd;
-        }
-        #footer {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            z-index: 5;
-            display: flex;
-            flex-direction: column;
         }
         #attendancePopup {
             position: absolute;
@@ -64,86 +46,34 @@
             border-radius: 5px;
             display: none;
         }
-        #loggedInAs {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            z-index: 5;
-            background-color: #6a11cb;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        /* Style for the table */
-        #attendanceTable {
-            display: none; /* Initially hidden */
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        #attendanceTable th, #attendanceTable td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        #attendanceTable th {
-            background-color: #6a11cb;
-            color: white;
-        }
-        #checkInButton,#checkOutButton{
-            top:100px;
-            display:none;
-        }
-
     </style>
 </head>
 <body>
     <div class="header">
-        <img src="Group 33.png" alt="Home" onclick="redirecthome()" >
+        <img src="Group 33.png" alt="Home" onclick="redirecthome()">
     </div>
     <div id="map"></div>
     <div id="footer">
         <button class="action-button" onclick="punchIn()">Check In</button>
         <button class="action-button" onclick="punchOut()">Check Out</button>
-        <div id="attendancePopup">
-            Attendance Marked
-        </div>
+        <div id="attendancePopup">Attendance Marked</div>
     </div>
-</body>
-<script>
-    function redirecthome(){
-        window.location.href = 'index1.html'
-    }
-    let map, infoWindow, regionCircle, hasPunchedInToday,hasMarkedAttendance = false;
-        
-        document.addEventListener("DOMContentLoaded", () => {
-            username = localStorage.getItem('username');
-            
-        });
-         // Store the username after login
-        const blueDotIcon = 'https://img.icons8.com/material-rounded/24/000000/marker.png'; // Replace with your blue dot URL
+
+    <script>
+        let map, infoWindow, userMarker;
+        let hasPunchedInToday = false;
+        const username = localStorage.getItem('username');
+
+        function redirecthome() {
+            window.location.href = 'index1.html';
+        }
+
         function initMap() {
             map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 16.662745, lng:80.737959, },
+                center: { lat: 16.662745, lng: 80.737959 },
                 zoom: 15,
             });
             infoWindow = new google.maps.InfoWindow();
-
-            const regionCenter = { lat: 16.790707, lng:80.846771 };
-
-            // Define a circular region with a 20-meter radius
-            regionCircle = new google.maps.Circle({
-                strokeColor: "#FF0000",
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                fillColor: "#FF0000",
-                fillOpacity: 0.35,
-                map,
-                center: regionCenter,
-                radius: 8,
-            });
-
-            // Create a marker to represent the user's current location
             userMarker = new google.maps.Marker({
                 map: map,
                 title: "Your Location",
@@ -152,42 +82,15 @@
                 },
             });
 
-            // Continuously track user's location and update the marker position
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(
-                    async (position) => {
+                    (position) => {
                         const pos = {
                             lat: position.coords.latitude,
                             lng: position.coords.longitude,
                         };
-
-                        // Update the marker position
                         userMarker.setPosition(pos);
                         map.setCenter(pos);
-
-                        // Check if user is within the defined region
-                        let hasPunchedOut = false;
-                        const distanceFromCenter = google.maps.geometry.spherical.computeDistanceBetween(
-                            new google.maps.LatLng(pos.lat, pos.lng),
-                            regionCircle.getCenter()
-                        );
-                        if (distanceFromCenter <= regionCircle.getRadius()) {
-        if (!hasMarkedAttendance) {
-        console.log('User is within region, marking attendance.');
-        showAttendanceMarkedPopup();
-        hasMarkedAttendance = true;
-        
-        punchIn(); // Punch in here
-    }
-} else {
-    if (hasMarkedAttendance && !hasPunchedOut) {
-        console.log('User is outside the region, punching out.');
-        punchOut();
-        hasPunchedOut = true;
-    }
-}
-
- 
                     },
                     () => {
                         handleLocationError(true, infoWindow, map.getCenter());
@@ -198,18 +101,13 @@
             }
         }
 
-
-
         function handleLocationError(browserHasGeolocation, infoWindow, pos) {
             infoWindow.setPosition(pos);
             infoWindow.setContent(
-                browserHasGeolocation
-                    ? "Error: The Geolocation service failed."
-                    : "Error: Your browser doesn't support geolocation."
+                browserHasGeolocation ? "Error: The Geolocation service failed." : "Error: Your browser doesn't support geolocation."
             );
             infoWindow.open(map);
         }
-        
 
         function showAttendanceMarkedPopup() {
             const popup = document.getElementById("attendancePopup");
@@ -220,76 +118,77 @@
         }
 
         function punchIn() {
-        if (!username) {
-            alert('Error: No username provided.');
-            return;
-        }
-
-        const currentDate = new Date().toDateString();
-
-        if (hasPunchedInToday && currentDate === localStorage.getItem('lastPunchInDate')) {
-            alert('You have already punched in for today.');
-            return;
-        }
-
-        const punchInTime = new Date().getTime();
-
-        fetch('https://geolocation-zmi9.onrender.com/punch-in', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, punchInTime }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Punched In at ' + new Date(punchInTime).toLocaleTimeString());
-                hasPunchedInToday = true;
-                localStorage.setItem('lastPunchInDate', currentDate);
-            } else {
-                alert('Error: ' + data.message);
+            if (!username) {
+                alert('Error: No username provided.');
+                return;
             }
-        })
-        .catch(error => {
-            alert('An error occurred. Please try again.');
-        });
-    }
 
-    function punchOut() {
-    if (!username) {
-        alert('Error: No username provided.');
-        return;
-    }
+            const currentDate = new Date().toDateString();
 
-    const punchOutTime = new Date().getTime();
+            if (hasPunchedInToday && currentDate === localStorage.getItem('lastPunchInDate')) {
+                alert('You have already punched in for today.');
+                return;
+            }
 
-    fetch('https://geolocation-zmi9.onrender.com/punch-out', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, punchOutTime }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Punched Out at ' + new Date(punchOutTime).toLocaleTimeString());
-        } else {
-            alert('Error: ' + data.message);
+            const punchInTime = new Date().toLocaleTimeString(); // Get current time in HH:mm:ss format
+
+            fetch('https://geolocation-zmi9.onrender.com/punch-in', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, punchInTime }), // Send only the time
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Punched In at ' + punchInTime);
+                    hasPunchedInToday = true;
+                    localStorage.setItem('lastPunchInDate', currentDate);
+                    showAttendanceMarkedPopup();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+            });
         }
-    })
-    .catch(error => {
-        alert('An error occurred. Please try again.');
-    });
-}
+
+        function punchOut() {
+            if (!username) {
+                alert('Error: No username provided.');
+                return;
+            }
+
+            const punchOutTime = new Date().toLocaleTimeString(); // Get current time in HH:mm:ss format
+
+            fetch('https://geolocation-zmi9.onrender.com/punch-out', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, punchOutTime }), // Send only the time
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Punched Out at ' + punchOutTime);
+                    showAttendanceMarkedPopup();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+            });
+        }
 
         window.initMap = initMap;
-</script>
-<script
-src="https://maps.googleapis.com/maps/api/js?key=AIzaSyASAMgt4KkC1Hr4bbf8A8JBGwAcpwlAv6o&callback=initMap&v=weekly&libraries=geometry"
-async
->
-
-</script>
+    </script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyASAMgt4KkC1Hr4bbf8A8JBGwAcpwlAv6o&callback=initMap&v=weekly&libraries=geometry"
+        async
+    ></script>
+</body>
 </html>
