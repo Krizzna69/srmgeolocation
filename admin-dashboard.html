@@ -126,7 +126,7 @@
                                 <td>${new Date(request.fromTime).toLocaleString()}</td>
                                 <td>${new Date(request.leavingTime).toLocaleString()}</td>
                                 <td>${request.location}</td>
-                                <td>${request.currentLocation ? `${request.currentLocation.lat}, ${request.currentLocation.lon}` : 'Not Submitted'}</td>
+                                <td>${request.currentLocation ? `${request.currentLocation.lat}, ${request.currentLocation.lng}` : 'Not Submitted'}</td>
                                 <td>${request.isApproved === null ? 'Pending' : request.isApproved ? 'Approved' : 'Disapproved'}</td>
                                 <td>
                                     <button class="btn btn-approve" onclick="updateRequestStatus('${request._id}', true)">Approve</button>

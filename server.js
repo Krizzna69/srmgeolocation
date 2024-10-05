@@ -30,9 +30,8 @@ const offsiteRequestSchema = new mongoose.Schema({
   username: { type: String, required: true },
   fromTime: { type: Date, required: true },
   leavingTime: { type: Date, required: true },
-  location: { type: String, required: true },
-  placeName: { type: String, required: true }, // New field for the place name
-   // Retain this if you still want to store coordinates
+  location: { type: String, required: true },// New field for the place name
+  currentLocation: { lat: Number, lng: Number }, // Retain this if you still want to store coordinates
   isApproved: { type: Boolean, default: null } // null = pending, true = approved, false = disapproved
 });
 const OffsiteRequest = mongoose.model('OffsiteRequest', offsiteRequestSchema);
@@ -104,7 +103,7 @@ app.get('/admin/dashboard', async (req, res) => {
         lastCheckOutTime: user.lastCheckOutTime,
         totalAttendance: user.attendance,
         totalWorkingHours: formatTime(user.totalWorkingHours),
-        location: user.location ? `${user.location.lat}, ${user.location.lon}` : 'N/A' // Include location
+        location: user.location ? `${user.location.lat}, ${user.location.lng}` : 'N/A' // Include location
       }))
     });
   } catch (error) {
