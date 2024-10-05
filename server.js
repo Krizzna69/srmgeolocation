@@ -30,10 +30,14 @@ const offsiteRequestSchema = new mongoose.Schema({
   username: { type: String, required: true },
   fromTime: { type: Date, required: true },
   leavingTime: { type: Date, required: true },
-  location: { type: String, required: true },// New field for the place name
-  currentLocation: { lat: Number, lng: Number }, // Retain this if you still want to store coordinates
+  location: { type: String, required: true },
+  currentLocation: {
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true }
+  },
   isApproved: { type: Boolean, default: null } // null = pending, true = approved, false = disapproved
 });
+
 const OffsiteRequest = mongoose.model('OffsiteRequest', offsiteRequestSchema);
 
 // Define User schema with a reference to OffsiteRequest
