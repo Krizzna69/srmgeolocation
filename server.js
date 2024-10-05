@@ -290,38 +290,38 @@ app.post('/punch-out', async (req, res) => {
       return res.status(400).json({ success: false, message: 'User not found' });
     }
 
-    // Get the current time in UTC and convert to IST
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
-    const istTime = new Date(now.getTime() + istOffset);
-
-    // Format the IST time
-    const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
-
-    // Check if the user has already punched out today
+    // Check if the user has already punched out or hasn't punched in yet
     if (!user.firstCheckInTime) {
       return res.status(400).json({ success: false, message: 'User has not punched in yet' });
     }
 
+    if (user.punchOutTime) {
+      return res.status(400).json({ success: false, message: 'User has already punched out today' });
+    }
+
+    // Get the current UTC time
+    const now = new Date();
+
+    // Format the time for storing (optional to keep UTC)
+    const formattedDateTime = now.toISOString().replace('T', ' ').substring(0, 19);
+
+    // Set the punch-out time
     user.punchOutTime = formattedDateTime;
     user.lastCheckOutTime = formattedDateTime;
 
     // Calculate total working hours
     const firstCheckInTime = new Date(user.firstCheckInTime);
-    const lastCheckOutTime = new Date(user.lastCheckOutTime);
+    const workingHours = (user.lastCheckInDate - firstCheckInTime) / (1000 * 60 * 60); // Convert ms to hours
 
-    if (isNaN(firstCheckInTime.getTime()) || isNaN(lastCheckOutTime.getTime())) {
-      return res.status(400).json({ success: false, message: 'Invalid check-in or check-out time' });
-    }
-
-    // Calculate the difference in milliseconds and convert to hours
-    const workingHours = (lastCheckOutTime - firstCheckInTime) / (1000 * 60 * 60);
+    // Check for invalid times
     if (isNaN(workingHours) || workingHours < 0) {
       return res.status(400).json({ success: false, message: 'Error in calculating working hours' });
     }
 
-    // Ensure totalWorkingHours is initialized properly
+    // Initialize totalWorkingHours if not already set
     user.totalWorkingHours = user.totalWorkingHours || 0;
+
+    // Add calculated working hours to total
     user.totalWorkingHours += workingHours;
 
     // Reset punchInTime to prevent multiple punch-outs
@@ -341,6 +341,7 @@ app.post('/punch-out', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 // Route to get employee details by username
 app.get('/employee-details/:username', async (req, res) => {
