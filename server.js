@@ -63,7 +63,14 @@ const userSchema = new mongoose.Schema({
 
 
 const User = mongoose.model('User', userSchema);
+const workLogSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  punchInTime: { type: Date, required: true },
+  punchOutTime: { type: Date, required: true },
+  totalWorkingHours: { type: Number, default: 0 }, // Store total working hours in seconds
+});
 
+const WorkLog = mongoose.model('WorkLog', workLogSchema);
 // Admin credentials
 const adminCredentials = {
   username: 'admin', // Replace with your desired admin username
@@ -72,6 +79,63 @@ const adminCredentials = {
 // Utility functions
 
 
+
+// Punch In Route
+app.post('/work-log/punch-in', async (req, res) => {
+  const { username, punchInTime } = req.body;
+
+  try {
+      const log = new WorkLog({
+          username,
+          punchInTime: new Date(punchInTime),
+      });
+      await log.save();
+      res.json({ success: true, message: 'Punched In successfully' });
+  } catch (error) {
+      console.error('Error during punch-in:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Punch Out Route
+app.post('/work-log/punch-out', async (req, res) => {
+  const { username, punchOutTime } = req.body;
+
+  try {
+      const log = await WorkLog.findOne({ username }).sort({ createdAt: -1 }); // Get the latest log
+
+      if (!log || !log.punchInTime) {
+          return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
+      }
+
+      log.punchOutTime = new Date(punchOutTime);
+      const totalWorkingMilliseconds = log.punchOutTime - log.punchInTime;
+      log.totalWorkingHours = Math.floor(totalWorkingMilliseconds / 1000); // Convert to seconds
+
+      await log.save();
+
+      res.json({
+          success: true,
+          message: 'Punched Out successfully',
+          totalWorkingHours: log.totalWorkingHours
+      });
+  } catch (error) {
+      console.error('Error during punch-out:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Fetch all work logs
+app.get('/admin/work-logs', async (req, res) => {
+  try {
+      const workLogs = await WorkLog.find().populate('username');
+      
+      res.json({ success: true, workLogs });
+  } catch (error) {
+      console.error('Error fetching work logs:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 
 // Admin Login endpoint
