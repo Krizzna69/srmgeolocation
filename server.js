@@ -312,16 +312,17 @@ app.post('/punch-in', async (req, res) => {
           return res.status(400).json({ success: false, message: 'User not found' });
       }
 
-      // Get the current time in UTC and convert to IST
+      // Get current time in IST
       const now = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
       const istTime = new Date(now.getTime() + istOffset);
-
-      // Format the IST time
       const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
-
-      // Get today's date in ISO format adjusted for IST
       const todayDate = istTime.toISOString().split('T')[0];
+
+      // Initialize lastCheckInDate if not set
+      if (!user.lastCheckInDate) {
+          user.lastCheckInDate = "";
+      }
 
       // Check if the user has already punched in today
       if (user.lastCheckInDate === todayDate) {
@@ -363,12 +364,15 @@ app.post('/punch-out', async (req, res) => {
           return res.status(400).json({ success: false, message: 'User not found' });
       }
 
-      // Get the current time in UTC and convert to IST
+      // Check if punch-in was made today
+      if (!user.firstCheckInTime) {
+          return res.status(400).json({ success: false, message: 'No punch-in found for today' });
+      }
+
+      // Get current time in IST
       const now = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
       const istTime = new Date(now.getTime() + istOffset);
-
-      // Format the IST time
       const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
 
       // Set punch-out time
@@ -377,19 +381,12 @@ app.post('/punch-out', async (req, res) => {
 
       // Calculate total working hours
       const firstCheckInTime = new Date(user.firstCheckInTime);
-      const lastCheckOutTime = new Date(user.lastCheckOutTime);
-
-      // Calculate the difference in milliseconds and convert to hours
-      const workingHours = (lastCheckOutTime - firstCheckInTime) / (1000 * 60 * 60);
+      const workingHours = (new Date(user.lastCheckOutTime) - firstCheckInTime) / (1000 * 60 * 60);
       
-      // Only add to total working hours if firstCheckInTime is set
-      if (user.firstCheckInTime) {
-          user.totalWorkingHours += workingHours;
-      }
+      user.totalWorkingHours += workingHours; // Update total working hours
 
       // Reset punchInTime to prevent multiple punch-outs
       user.punchInTime = null;
-      console.log(user.totalWorkingHours);
       await user.save();
 
       res.json({ 
@@ -404,6 +401,7 @@ app.post('/punch-out', async (req, res) => {
       res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 
 
