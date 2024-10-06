@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family:'Poppins';
+            font-family: 'Poppins', sans-serif;
             background-color: #f4f4f4;
             padding: 20px;
         }
@@ -38,17 +38,27 @@
             cursor: pointer;
         }
 
+        .btn-submit {
+            background-color: #4CAF50; /* Green */
+        }
+
         .btn-approve {
-            background-color: #4CAF50;
+            background-color: #4CAF50; /* Green */
         }
 
         .btn-disapprove {
-            background-color: #f44336;
+            background-color: #f44336; /* Red */
+        }
+
+        .btn-remove {
+            background-color: #ff5722; /* Orange */
         }
     </style>
 </head>
 <body>
-    <h2>Admin Dashboard - Offsite Work Requests</h2>
+    <h2>Admin Dashboard</h2>
+
+    <h3>Offsite Work Requests</h3>
     <table>
         <thead>
             <tr>
@@ -66,33 +76,42 @@
         </tbody>
     </table>
 
-    <script>
-        function updateRequestStatus(requestId, isApproved) {
-            fetch('https://lastofus-dbww.onrender.com/admin/approve-request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ requestId, isApproved }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Request status updated successfully');
-                    location.reload(); // Reload the page to reflect changes
-                } else {
-                    alert('Failed to update request status: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
+    <h3>Work From Home Logs</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Punch In Time</th>
+                <th>Punch Out Time</th>
+                <th>Total Working Hours</th>
+            </tr>
+        </thead>
+        <tbody id="workLogsTable">
+            <!-- Work logs will be dynamically added here -->
+        </tbody>
+    </table>
 
+    <h3>Log Work Hours</h3>
+    <form id="logWorkHoursForm">
+        <label for="username">Username:</label>
+        <input type="text" id="username" required>
+        <label for="punchInTime">Punch In Time:</label>
+        <input type="datetime-local" id="punchInTime" required>
+        <label for="punchOutTime">Punch Out Time:</label>
+        <input type="datetime-local" id="punchOutTime" required>
+        <button type="submit" class="btn btn-submit">Log Work Hours</button>
+    </form>
+
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const requestsTable = document.getElementById('requestsTable');
+            const workLogsTable = document.getElementById('workLogsTable');
+
+            // Function to fetch Offsite Requests
             fetch('https://srmgeolocation.onrender.com/admin/offsite-requests')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const requestsTable = document.getElementById('requestsTable');
                         data.requests.forEach(request => {
                             const row = document.createElement('tr');
                             row.innerHTML = `
@@ -105,6 +124,7 @@
                                 <td>
                                     <button class="btn btn-approve" onclick="updateRequestStatus('${request._id}', true)">Approve</button>
                                     <button class="btn btn-disapprove" onclick="updateRequestStatus('${request._id}', false)">Disapprove</button>
+                                    <button class="btn btn-remove" onclick="removeRequest('${request._id}')">Remove</button>
                                 </td>
                             `;
                             requestsTable.appendChild(row);
@@ -114,7 +134,99 @@
                     }
                 })
                 .catch(error => console.error('Error:', error));
+
+            // Function to fetch Work From Home Logs
+            fetch('https://srmgeolocation.onrender.com/admin/work-logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        data.workLogs.forEach(log => {
+                            const row = document.createElement('tr');
+                            const totalHours = Math.floor((new Date(log.punchOutTime) - new Date(log.punchInTime)) / 3600000);
+                            const totalMinutes = Math.floor(((new Date(log.punchOutTime) - new Date(log.punchInTime)) % 3600000) / 60000);
+                            row.innerHTML = `
+                                <td>${log.username}</td>
+                                <td>${new Date(log.punchInTime).toLocaleString()}</td>
+                                <td>${new Date(log.punchOutTime).toLocaleString()}</td>
+                                <td>${totalHours}h ${totalMinutes}m</td>
+                            `;
+                            workLogsTable.appendChild(row);
+                        });
+                    } else {
+                        alert('Failed to load work logs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+
+            // Form submission to log work hours
+            document.getElementById('logWorkHoursForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const username = document.getElementById('username').value;
+                const punchInTime = document.getElementById('punchInTime').value;
+                const punchOutTime = document.getElementById('punchOutTime').value;
+
+                fetch('https://srmgeolocation.onrender.com/work-log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, punchInTime, punchOutTime }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Work hours logged successfully');
+                        location.reload(); // Reload to show the updated logs
+                    } else {
+                        alert('Failed to log work hours: ' + data.message);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
         });
+
+        function updateRequestStatus(requestId, isApproved) {
+            const endpoint = isApproved ? 'https://srmgeolocation.onrender.com/admin/approve-request' : 'https://srmgeolocation.onrender.com/admin/disapprove-request';
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ requestId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Request ${isApproved ? 'approved' : 'disapproved'} successfully`);
+                    location.reload(); // Reload the page to reflect changes
+                } else {
+                    alert('Failed to update request status: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function removeRequest(requestId) {
+            fetch('https://srmgeolocation.onrender.com/admin/delete-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ requestId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Request removed successfully');
+                    location.reload(); // Reload the page to reflect changes
+                } else {
+                    alert('Failed to remove request: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
     </script>
 </body>
 </html>
