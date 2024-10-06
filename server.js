@@ -69,6 +69,13 @@ const workLogSchema = new mongoose.Schema({
 });
 
 const WorkLog = mongoose.model('WorkLog', workLogSchema);
+
+const querySchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  queryText: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+const Query = mongoose.model('Query', querySchema);
 // Admin credentials
 const adminCredentials = {
   username: 'admin', // Replace with your desired admin username
@@ -82,6 +89,39 @@ function formatTime(totalSeconds) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   return `${hours}h ${minutes}m`;
 }
+app.get('/admin/queries', async (req, res) => {
+  try {
+      const queries = await Query.find().sort({ createdAt: -1 }); // Sort queries by creation date
+      res.json({ success: true, queries });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ success: false, message: 'Error fetching queries' });
+  }
+});
+
+app.post('/submit-query', async (req, res) => {
+  const { username, queryText } = req.body;
+
+  try {
+      // Validate input
+      if (!username || !queryText) {
+          return res.status(400).json({ success: false, message: 'Username and query text are required' });
+      }
+
+      // Create a new query
+      const newQuery = new Query({
+          username,
+          queryText,
+      });
+
+      await newQuery.save();
+      res.json({ success: true, message: 'Query submitted successfully' });
+  } catch (error) {
+      console.error('Error submitting query:', error);
+      res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
 
 app.post('/admin/approve-worklog', async (req, res) => {
   const { workLogId } = req.body;

@@ -123,14 +123,25 @@
 
     <div id="queries" class="tab-content hidden">
         <h3>Queries</h3>
-        <!-- Add your Queries table or content here -->
-        <p>No queries to display.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Query Text</th>
+                    <th>Submitted At</th>
+                </tr>
+            </thead>
+            <tbody id="queriesTable">
+                <!-- Queries will be dynamically added here -->
+            </tbody>
+        </table>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const requestsTable = document.getElementById('requestsTable');
             const workLogsTable = document.getElementById('workLogsTable');
+            const queriesTable = document.getElementById('queriesTable');
 
             // Load Offsite Requests
             fetch('https://srmgeolocation.onrender.com/admin/offsite-requests')
@@ -185,6 +196,26 @@
                         });
                     } else {
                         alert('Failed to load work logs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+
+            // Load Submitted Queries
+            fetch('https://srmgeolocation.onrender.com/admin/queries')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        data.queries.forEach(query => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${query.username}</td>
+                                <td>${query.queryText}</td>
+                                <td>${new Date(query.createdAt).toLocaleString()}</td>
+                            `;
+                            queriesTable.appendChild(row);
+                        });
+                    } else {
+                        alert('Failed to load queries');
                     }
                 })
                 .catch(error => console.error('Error:', error));
