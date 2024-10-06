@@ -317,7 +317,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Punched In at ' + new Date(punchInTime).toLocaleTimeString());
+                
                 hasPunchedInToday = true;
                 localStorage.setItem('lastPunchInDate', currentDate);
             } else {
