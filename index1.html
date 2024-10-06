@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoCheckIn Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Poppins';
+            font-family: 'Poppins', sans-serif;
             background-color: #f5f6fa;
             margin: 0;
             padding: 0;
@@ -32,18 +32,17 @@
         .dashboard-container {
             background-color: #ffffff;
             width: 100%;
+            max-width: 600px;
             height: 100%;
             padding: 20px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
         }
         .header {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
             width: 100%;
             padding-bottom: 10px;
             border-bottom: 1px solid #ddd;
@@ -58,10 +57,9 @@
             font-size: 20px;
             color: #333;
             font-weight: 600;
-            font-family: 'Arial', sans-serif;
         }
         .icon-grid {
-            margin-top: 200px;
+            margin-top: 20px;
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
@@ -105,10 +103,6 @@
         .links-list li:hover {
             background-color: #f9f9f9;
         }
-        .links-list li span {
-            font-size: 16px;
-            color: #555;
-        }
         #map {
             display: none;
         }
@@ -141,17 +135,19 @@
             </div>
         </div>
         <ul class="links-list">
-            <li>
-                <span onclick="redirectpie()">Check Attendance Report</span>
+            <li onclick="redirectpie()">
+                <span>Check Attendance Report</span>
                 <span>&#9658;</span>
             </li>
-            <li>
-                <span onclick="redirectemp()">Employee Details</span>
+            <li onclick="redirectemp()">
+                <span>Employee Details</span>
                 <span>&#9658;</span>
             </li>
         </ul>
     </div>
     <script>
+        const username = localStorage.getItem('username');
+
         function redirectwork() {
             window.location.href = 'workfromhome.html';
         }
@@ -172,35 +168,32 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            username = localStorage.getItem('username');
             checkAttendanceReset();
-            window.initMap = initMap;
+            initMap();
         });
 
-        let map, infoWindow, regionCircle, hasPunchedInToday, hasMarkedAttendance = false;
+        let map, infoWindow, regionCircle, hasMarkedAttendance = false;
 
         function checkAttendanceReset() {
             const lastMarkedTime = localStorage.getItem('lastMarkedTime');
             const currentTime = new Date().getTime();
 
-            // If lastMarkedTime is set and 24 hours have passed
             if (lastMarkedTime && (currentTime - lastMarkedTime) > 24 * 60 * 60 * 1000) {
                 localStorage.removeItem('hasMarkedAttendance');
                 localStorage.removeItem('lastMarkedTime');
             }
         }
 
-        const blueDotIcon = 'https://img.icons8.com/material-rounded/24/000000/marker.png'; // Replace with your blue dot URL
+        const blueDotIcon = 'https://img.icons8.com/material-rounded/24/000000/marker.png';
+
         function initMap() {
             map = new google.maps.Map(document.getElementById("map"), {
                 center: { lat: 16.79076487697725, lng: 80.84678917870635 },
                 zoom: 15,
             });
             infoWindow = new google.maps.InfoWindow();
-
             const regionCenter = { lat: 16.790764, lng: 80.846789 };
 
-            // Define a circular region with a 20-meter radius
             regionCircle = new google.maps.Circle({
                 strokeColor: "#FF0000",
                 strokeOpacity: 0.8,
@@ -212,16 +205,14 @@
                 radius: 50,
             });
 
-            // Create a marker to represent the user's current location
-            userMarker = new google.maps.Marker({
+            const userMarker = new google.maps.Marker({
                 map: map,
                 title: "Your Location",
                 icon: {
-                    url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                    url: blueDotIcon,
                 },
             });
 
-            // Continuously track user's location and update the marker position
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(
                     async (position) => {
@@ -230,31 +221,24 @@
                             lng: position.coords.longitude,
                         };
 
-                        // Update the marker position
                         userMarker.setPosition(pos);
                         map.setCenter(pos);
 
-                        // Check if user is within the defined region
-                        let hasPunchedOut = false;
                         const distanceFromCenter = google.maps.geometry.spherical.computeDistanceBetween(
                             new google.maps.LatLng(pos.lat, pos.lng),
                             regionCircle.getCenter()
                         );
 
-                        if (distanceFromCenter <= regionCircle.getRadius()) {
-                            if (!localStorage.getItem('hasMarkedAttendance')) {
-                                console.log('User is within region, marking attendance.');
-                                showAttendanceMarkedPopup();
-                                localStorage.setItem('hasMarkedAttendance', 'true'); // Store as string
-                                localStorage.setItem('lastMarkedTime', new Date().getTime()); // Store current timestamp
-                                punchIn(); // Punch in here
-                            }
-                        } else {
-                            if (hasMarkedAttendance && !hasPunchedOut) {
-                                console.log('User is outside the region, punching out.');
-                                punchOut();
-                                hasPunchedOut = true;
-                            }
+                        if (distanceFromCenter <= regionCircle.getRadius() && !localStorage.getItem('hasMarkedAttendance')) {
+                            console.log('User is within region, marking attendance.');
+                            showAttendanceMarkedPopup();
+                            localStorage.setItem('hasMarkedAttendance', 'true');
+                            localStorage.setItem('lastMarkedTime', new Date().getTime());
+                            punchIn();
+                        } else if (distanceFromCenter > regionCircle.getRadius() && localStorage.getItem('hasMarkedAttendance')) {
+                            console.log('User is outside the region, punching out.');
+                            punchOut();
+                            localStorage.removeItem('hasMarkedAttendance');
                         }
                     },
                     () => {
@@ -278,12 +262,10 @@
 
         function showAttendanceMarkedPopup() {
             const popup = document.getElementById("attendancePopup");
-            if (popup) {
-                popup.style.display = "block";
-                setTimeout(() => {
-                    popup.style.display = "none";
-                }, 3000);
-            }
+            popup.style.display = "block";
+            setTimeout(() => {
+                popup.style.display = "none";
+            }, 3000);
         }
 
         function punchIn() {
@@ -293,8 +275,9 @@
             }
 
             const currentDate = new Date().toDateString();
+            const lastPunchInDate = localStorage.getItem('lastPunchInDate');
 
-            if (hasPunchedInToday && currentDate === localStorage.getItem('lastPunchInDate')) {
+            if (lastPunchInDate && currentDate === lastPunchInDate) {
                 alert('You have already punched in for today.');
                 return;
             }
@@ -312,13 +295,12 @@
             .then(data => {
                 if (data.success) {
                     alert('Punched In at ' + new Date(punchInTime).toLocaleTimeString());
-                    hasPunchedInToday = true;
                     localStorage.setItem('lastPunchInDate', currentDate);
                 } else {
                     alert('Error: ' + data.message);
                 }
             })
-            .catch(error => {
+            .catch(() => {
                 alert('An error occurred. Please try again.');
             });
         }
@@ -346,16 +328,11 @@
                     alert('Error: ' + data.message);
                 }
             })
-            .catch(error => {
+            .catch(() => {
                 alert('An error occurred. Please try again.');
             });
         }
-
-        initMap();
     </script>
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyASAMgt4KkC1Hr4bbf8A8JBGwAcpwlAv6o&callback=initMap&v=weekly&libraries=geometry"
-        async
-    ></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyASAMgt4KkC1Hr4bbf8A8JBGwAcpwlAv6o&callback=initMap&libraries=geometry" async></script>
 </body>
 </html>

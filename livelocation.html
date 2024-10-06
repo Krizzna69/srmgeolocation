@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Attendance System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Poppins';
+            font-family: 'Poppins', sans-serif;
         }
         #map {
             margin-top: 50px;
@@ -17,7 +17,7 @@
             width: 100%;
             display: flex;
             align-items: center;
-            justify-content: space-around;
+            justify-content: center;
         }
         #footer {
             position: absolute;
@@ -59,9 +59,7 @@
     <div id="footer">
         <button class="action-button" onclick="punchIn()">Check In</button>
         <button class="action-button" onclick="punchOut()">Check Out</button>
-        <div id="attendancePopup">
-            Attendance Marked
-        </div>
+        <div id="attendancePopup">Attendance Marked</div>
     </div>
     
     <script>
@@ -70,10 +68,12 @@
         }
 
         let map, infoWindow, regionCircle, hasMarkedAttendance = false;
+        let username;
 
         document.addEventListener("DOMContentLoaded", () => {
             username = localStorage.getItem('username');
             checkAttendanceReset();
+            initMap();
         });
 
         const blueDotIcon = 'https://img.icons8.com/material-rounded/24/000000/marker.png';
@@ -99,9 +99,7 @@
             userMarker = new google.maps.Marker({
                 map: map,
                 title: "Your Location",
-                icon: {
-                    url: blueDotIcon,
-                },
+                icon: { url: blueDotIcon },
             });
 
             if (navigator.geolocation) {
@@ -169,7 +167,7 @@
             }
 
             const currentDate = new Date().toDateString();
-            const lastPunchInDate = localStorage.getItem('lastPunchInDate');
+            const lastPunchInDate = localStorage.getItem(`${username}_lastPunchInDate`);
 
             if (lastPunchInDate && currentDate === lastPunchInDate) {
                 alert('You have already punched in for today.');
@@ -189,7 +187,8 @@
             .then(data => {
                 if (data.success) {
                     alert('Punched In at ' + punchInTime.toLocaleTimeString());
-                    localStorage.setItem('lastPunchInDate', currentDate);
+                    localStorage.setItem(`${username}_lastPunchInDate`, currentDate);
+                    localStorage.setItem(`${username}_lastMarkedTime`, Date.now());
                 } else {
                     alert('Error: ' + data.message);
                 }
@@ -228,13 +227,13 @@
         }
 
         function checkAttendanceReset() {
-            const lastMarkedTime = localStorage.getItem('lastMarkedTime');
+            const lastMarkedTime = localStorage.getItem(`${username}_lastMarkedTime`);
             const currentTime = new Date().getTime();
 
             // Reset attendance if more than 24 hours have passed
             if (lastMarkedTime && (currentTime - lastMarkedTime) > 24 * 60 * 60 * 1000) {
-                localStorage.removeItem('lastPunchInDate');
-                localStorage.removeItem('lastMarkedTime');
+                localStorage.removeItem(`${username}_lastPunchInDate`);
+                localStorage.removeItem(`${username}_lastMarkedTime`);
                 hasMarkedAttendance = false;
             }
         }
