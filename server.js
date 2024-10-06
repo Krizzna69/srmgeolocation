@@ -302,7 +302,6 @@ app.post('/update-attendance', async (req, res) => {
 
 // Punch In endpoint
 // Utility function to format seconds into hours and minutes
-// Punch-In Endpoint
 app.post('/punch-in', async (req, res) => {
   const { username } = req.body;
 
@@ -316,37 +315,26 @@ app.post('/punch-in', async (req, res) => {
       const now = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
       const istTime = new Date(now.getTime() + istOffset);
-      const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
+      const formattedDateTime = istTime.toISOString(); // ISO string format
       const todayDate = istTime.toISOString().split('T')[0];
-
-      // Initialize lastCheckInDate if not set
-      if (!user.lastCheckInDate) {
-          user.lastCheckInDate = "";
-      }
 
       // Check if the user has already punched in today
       if (user.lastCheckInDate === todayDate) {
           return res.status(400).json({ success: false, message: 'Already punched in today' });
       }
 
-      // If it's a new day, reset check-out time
-      user.lastCheckOutTime = null;
-
-      // Update attendance
-      if (user.lastCheckInDate !== todayDate) {
-          user.firstCheckInTime = formattedDateTime; // Set first check-in time
-          user.lastCheckInDate = todayDate;
-          user.attendance += 1; // Increment attendance only once per day
-      }
-
-      user.punchInTime = formattedDateTime; // Update punch-in time
+      // Update user fields
+      user.punchInTime = formattedDateTime;
+      user.firstCheckInTime = user.firstCheckInTime || formattedDateTime; // Set only if not set
+      user.lastCheckInDate = todayDate; // Update last check-in date
+      user.attendance += 1; // Increment attendance count
       await user.save();
 
-      res.json({ 
-          success: true, 
-          message: 'Punched In successfully', 
+      res.json({
+          success: true,
+          message: 'Punched In successfully',
           punchInTime: user.punchInTime,
-          firstCheckInTime: user.firstCheckInTime 
+          firstCheckInTime: user.firstCheckInTime,
       });
 
   } catch (error) {
@@ -365,7 +353,7 @@ app.post('/punch-out', async (req, res) => {
       }
 
       // Check if punch-in was made today
-      if (!user.firstCheckInTime) {
+      if (!user.punchInTime) {
           return res.status(400).json({ success: false, message: 'No punch-in found for today' });
       }
 
@@ -373,7 +361,7 @@ app.post('/punch-out', async (req, res) => {
       const now = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
       const istTime = new Date(now.getTime() + istOffset);
-      const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
+      const formattedDateTime = istTime.toISOString(); // ISO string format
 
       // Set punch-out time
       user.punchOutTime = formattedDateTime;
@@ -381,19 +369,19 @@ app.post('/punch-out', async (req, res) => {
 
       // Calculate total working hours
       const firstCheckInTime = new Date(user.firstCheckInTime);
-      const workingHours = (new Date(user.lastCheckOutTime) - firstCheckInTime) / (1000 * 60 * 60);
-      
+      const workingHours = (new Date(user.punchOutTime) - firstCheckInTime) / (1000 * 60 * 60); // Convert to hours
+
       user.totalWorkingHours += workingHours; // Update total working hours
 
       // Reset punchInTime to prevent multiple punch-outs
       user.punchInTime = null;
       await user.save();
 
-      res.json({ 
-          success: true, 
-          message: 'Punched Out successfully', 
+      res.json({
+          success: true,
+          message: 'Punched Out successfully',
           punchOutTime: user.punchOutTime,
-          totalWorkingHours: user.totalWorkingHours 
+          totalWorkingHours: user.totalWorkingHours,
       });
 
   } catch (error) {
@@ -401,6 +389,7 @@ app.post('/punch-out', async (req, res) => {
       res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 
 
