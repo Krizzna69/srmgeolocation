@@ -48,12 +48,13 @@
             padding: 10px;
             border-radius: 5px;
             display: none;
+            z-index: 10; /* Ensure it appears above other elements */
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <img src="Group 33.png" alt="Home" onclick="redirecthome()">
+        <img src="Group 33.png" alt="Home" onclick="redirectHome()">
     </div>
     <div id="map"></div>
     <div id="footer">
@@ -63,7 +64,7 @@
     </div>
     
     <script>
-        function redirecthome() {
+        function redirectHome() {
             window.location.href = 'index1.html';
         }
 
@@ -77,6 +78,7 @@
         });
 
         const blueDotIcon = 'https://img.icons8.com/material-rounded/24/000000/marker.png';
+        
         function initMap() {
             map = new google.maps.Map(document.getElementById("map"), {
                 center: { lat: 16.79076487697725, lng: 80.84678917870635 },
@@ -96,7 +98,7 @@
                 radius: 50,
             });
 
-            userMarker = new google.maps.Marker({
+            const userMarker = new google.maps.Marker({
                 map: map,
                 title: "Your Location",
                 icon: { url: blueDotIcon },
@@ -237,7 +239,8 @@
                 hasMarkedAttendance = false;
             }
         }
-
+        localStorage.removeItem(`${username}_lastPunchInDate`);
+        localStorage.removeItem(`${username}_lastMarkedTime`);
         window.initMap = initMap;
     </script>
     <script
