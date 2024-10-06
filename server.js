@@ -74,6 +74,11 @@ const adminCredentials = {
   password: 'admin123' // Replace with your desired admin password
 };
 // Utility functions
+function formatTime(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${minutes}m`; // or return in a different format if needed
+}
 
 
 
