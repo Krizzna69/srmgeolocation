@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema({
   punchOutTime: String,
   firstCheckInTime: String,
   lastCheckOutTime: String,
-  totalWorkingHours: { type: Number, default: 0 },
+  totalWorkingHours: String,
   lastCheckInDate: String,
   isApproved: { type: Boolean, default: false },
   location: {
@@ -260,57 +260,58 @@ app.post('/punch-in', async (req, res) => {
  }
 });
 
-// Punch Out endpoint
 app.post('/punch-out', async (req, res) => {
- const { username } = req.body;
+  const { username } = req.body;
 
- try {
-     const user = await User.findOne({ username });
-     if (!user) return res.status(400).json({ success:false,message:'User not found' });
-     if (!user.punchInTime) return res.status(400).json({ success:false,message:'Punch In first before Punching Out' });
+  try {
+      const user = await User.findOne({ username });
+      if (!user) return res.status(400).json({ success: false, message: 'User not found' });
+      if (!user.punchInTime) return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
 
-     const now = new Date();
-     const formattedPunchOutTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
+      const now = new Date();
+      const formattedPunchOutTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
 
-     // Parse punch-in and punch-out times
-     const punchInParts = user.punchInTime.split(':').map(Number);
-     const punchOutParts = formattedPunchOutTime.split(':').map(Number);
+      // Parse punch-in and punch-out times
+      const punchInParts = user.punchInTime.split(':').map(Number);
+      const punchOutParts = formattedPunchOutTime.split(':').map(Number);
 
-     // Convert to seconds
-     const punchInSeconds =
-         punchInParts[0] * 3600 + punchInParts[1] * 60 + punchInParts[2];
-     const punchOutSeconds =
-         punchOutParts[0] * 3600 + punchOutParts[1] * 60 + punchOutParts[2];
+      // Convert to seconds
+      const punchInSeconds = punchInParts[0] * 3600 + punchInParts[1] * 60 + punchInParts[2];
+      const punchOutSeconds = punchOutParts[0] * 3600 + punchOutParts[1] * 60 + punchOutParts[2];
 
-     // Calculate total working seconds
-     let totalWorkingSeconds = punchOutSeconds - punchInSeconds;
+      // Calculate total working seconds
+      let totalWorkingSeconds = punchOutSeconds - punchInSeconds;
 
-     // Handle overnight shifts (if punch out time is earlier than punch in time)
-     if (totalWorkingSeconds < 0) totalWorkingSeconds += 24 * 3600; // Add 24 hours in seconds
+      // Handle overnight shifts (if punch out time is earlier than punch in time)
+      if (totalWorkingSeconds < 0) totalWorkingSeconds += 24 * 3600; // Add 24 hours in seconds
 
-     // Update user data
-     user.punchOutTime = formattedPunchOutTime; // Store only time
-     user.lastCheckOutTime = formattedPunchOutTime;
+      // Update user data
+      user.punchOutTime = formattedPunchOutTime; // Store only time
+      user.lastCheckOutTime = formattedPunchOutTime;
 
-     // Accumulate total working hours
-     user.totalWorkingHours += totalWorkingSeconds;
+      // Ensure totalWorkingHours is initialized
+      user.totalWorkingHours = user.totalWorkingHours || 0;
 
-     user.punchInTime = null; // Reset punchInTime after punching out
+      // Accumulate total working hours
+      user.totalWorkingHours += totalWorkingSeconds;
 
-     await user.save();
+      user.punchInTime = null; // Reset punchInTime after punching out
 
-     res.json({
-         success:true,
-         message:'Punched Out successfully',
-         punchOutTime:user.punchOutTime,
-         lastCheckOutTime:user.lastCheckOutTime,
-         totalWorkingHours:user.totalWorkingHours 
-    });
- } catch (error) {
-    console.error('Error during punch-out:', error.message || error);
-    res.status(500).json({ success:false,message:'Server error',error:error.message });
- }
+      await user.save();
+
+      res.json({
+          success: true,
+          message: 'Punched Out successfully',
+          punchOutTime: user.punchOutTime,
+          lastCheckOutTime: user.lastCheckOutTime,
+          totalWorkingHours: user.totalWorkingHours 
+      });
+  } catch (error) {
+      console.error('Error during punch-out:', error.message || error);
+      res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
 });
+
 
 
 // Route to get employee details by username
