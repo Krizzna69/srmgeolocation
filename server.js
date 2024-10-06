@@ -98,32 +98,37 @@ app.post('/work-log', async (req, res) => {
           return res.status(400).json({ success: false, message: 'User not found' });
       }
 
-      // Convert the times to Date objects
-      const punchInDate = new Date(punchInTime);
-      const punchOutDate = new Date(punchOutTime);
+      // Convert the times to Date objects in UTC
+      const punchInDate = new Date(`${new Date().toISOString().split('T')[0]}T${punchInTime}:00Z`);
+      const punchOutDate = new Date(`${new Date().toISOString().split('T')[0]}T${punchOutTime}:00Z`);
+
+      // Convert to IST (+05:30)
+      const IST_OFFSET = 5.5 * 60 * 60 * 1000; // Offset in milliseconds
+      const punchInDateIST = new Date(punchInDate.getTime() + IST_OFFSET);
+      const punchOutDateIST = new Date(punchOutDate.getTime() + IST_OFFSET);
 
       // Validate date objects
-      if (isNaN(punchInDate) || isNaN(punchOutDate)) {
+      if (isNaN(punchInDateIST) || isNaN(punchOutDateIST)) {
           return res.status(400).json({ success: false, message: 'Invalid date format' });
       }
 
       // Validate punch out time is after punch in time
-      if (punchOutDate <= punchInDate) {
+      if (punchOutDateIST <= punchInDateIST) {
           return res.status(400).json({ success: false, message: 'Punch Out time must be after Punch In time' });
       }
 
       // Create a new work log entry
       const workLog = new WorkLog({
           username: user.username,
-          punchInTime: punchInDate,
-          punchOutTime: punchOutDate,
-          totalWorkingHours: (punchOutDate - punchInDate) / 1000, // Store in seconds
+          punchInTime: punchInDateIST,
+          punchOutTime: punchOutDateIST,
+          totalWorkingHours: (punchOutDateIST - punchInDateIST) / 1000, // Store in seconds
       });
       await workLog.save();
 
       // Update the user's work logs
       user.workLogs = user.workLogs || [];
-      user.workLogs.push({ punchInTime: punchInDate, punchOutTime: punchOutDate });
+      user.workLogs.push({ punchInTime: punchInDateIST, punchOutTime: punchOutDateIST });
       await user.save();
 
       res.json({ success: true, message: 'Work hours logged successfully' });
