@@ -145,7 +145,7 @@
                 <span>Off-site</span>
             </div>
             <div>
-                <img src="work-from-home 1.png" alt="WFH">
+                <img src="work-from-home 1.png" alt="WFH" onclick="redirectwork()">
                 <span>WFH</span>
             </div>
         </div>
@@ -175,6 +175,9 @@
         }        
         function redirectTomyactivity() {
      window.location.href = 'Myactivity.html';
+        }
+        function redirectwork(){
+            window.location.href = 'workfromhome.html';
         }
         document.addEventListener("DOMContentLoaded", () => {
             username = localStorage.getItem('username');
