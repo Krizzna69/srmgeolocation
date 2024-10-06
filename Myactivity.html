@@ -86,7 +86,7 @@ function redirecthome(){
     if (Array.isArray(attendance)) {
         attendance.forEach(entry => {
             const row = tableBody.insertRow();
-            console.log(attendance);
+
             const firstCheckIn = new Date(entry.firstCheckInTime).toLocaleString();
             const lastCheckOut = new Date(entry.lastCheckOutTime).toLocaleString();
 
