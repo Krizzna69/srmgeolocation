@@ -85,10 +85,11 @@ function formatTime(totalSeconds) {
 // Punch In Route
 // Assuming you have Mongoose set up and a User model defined
 app.post('/work-log', async (req, res) => {
+  console.log('Received request:', req.body); // Log the incoming request data
   const { username, punchInTime, punchOutTime } = req.body;
 
   try {
-      // Validate input
+      // Existing validation logic
       if (!username || !punchInTime || !punchOutTime) {
           return res.status(400).json({ success: false, message: 'All fields are required' });
       }
@@ -123,6 +124,7 @@ app.post('/work-log', async (req, res) => {
       res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
+
 
 // Fetch all work logs
 app.get('/admin/work-logs', async (req, res) => {
