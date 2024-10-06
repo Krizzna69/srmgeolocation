@@ -237,9 +237,79 @@
             document.querySelector(`.tab-button[onclick*='${tabName}']`).classList.add('active');
         }
 
-        // Functions for Request and Work Log Actions...
-        // Include your existing fetch calls and action functions here
+        function updateRequestStatus(id, approve) {
+            const action = approve ? 'approve-request' : 'disapprove-request';
+            fetch(`https://srmgeolocation.onrender.com/admin/${action}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ requestId: id }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Request ${approve ? 'approved' : 'disapproved'} successfully`);
+                    location.reload(); // Reload to refresh the data
+                } else {
+                    alert('Failed to update request status: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
 
+        function removeRequest(id) {
+            fetch('https://srmgeolocation.onrender.com/admin/delete-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ requestId: id }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Request removed successfully');
+                    location.reload(); // Reload to refresh the data
+                } else {
+                    alert('Failed to remove request: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function updateWorkLogStatus(id, approve) {
+            const action = approve ? 'approve' : 'disapprove';
+            fetch(`https://srmgeolocation.onrender.com/admin/work-logs/${action}/${id}`, {
+                method: 'PATCH'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Work log ${action}d successfully`);
+                    location.reload(); // Reload to refresh the data
+                } else {
+                    alert('Failed to update work log status');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function removeWorkLog(id) {
+            fetch(`https://srmgeolocation.onrender.com/admin/work-logs/remove/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Work log removed successfully');
+                    location.reload(); // Reload to refresh the data
+                } else {
+                    alert('Failed to remove work log');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
     </script>
 </body>
 </html>
