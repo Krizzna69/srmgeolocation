@@ -122,25 +122,24 @@ app.post('/submit-query', async (req, res) => {
   }
 });
 
-
-app.post('/admin/approve-worklog', async (req, res) => {
-  const { workLogId } = req.body;
+app.post('/admin/delete-query', async (req, res) => {
+  console.log('Received a request to delete a query');
+  const { queryId } = req.body;
 
   try {
-      const workLog = await WorkLog.findById(workLogId);
-      if (!workLog) {
-          return res.status(404).json({ success: false, message: 'Work log not found' });
+      const result = await Query.findByIdAndDelete(queryId);
+      console.log('Query deletion result:', result);
+      if (!result) {
+          return res.status(404).json({ success: false, message: 'Query not found' });
       }
 
-      workLog.isApproved = true;
-      await workLog.save();
-
-      res.json({ success: true, message: 'Work log approved successfully' });
+      res.json({ success: true, message: 'Query removed successfully' });
   } catch (error) {
-      console.error('Error approving work log:', error);
+      console.error('Error removing query:', error);
       res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 // Example route to disapprove a work log
 app.post('/admin/disapprove-worklog', async (req, res) => {
