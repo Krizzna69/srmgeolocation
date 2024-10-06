@@ -299,19 +299,14 @@ app.post('/punch-in', async (req, res) => {
 
   try {
       const user = await User.findOne({ username });
-
+      
       if (!user) return res.status(400).json({ success: false, message: 'User not found' });
 
       const now = new Date();
       
       user.punchInTime = now; // Store as a Date object
+      user.firstCheckInTime = now; // Set first check-in time if not set
       
-      // Update firstCheckInTime only if it's not already set
-      if (!user.firstCheckInTime) {
-          user.firstCheckInTime = now; // Set first check-in time if not set
-      }
-      
-      user.lastCheckOutTime = null; // Reset last check-out time
       
       await user.save();
       
@@ -327,7 +322,6 @@ app.post('/punch-in', async (req, res) => {
       res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 
 app.post('/punch-out', async (req, res) => {
@@ -356,7 +350,7 @@ app.post('/punch-out', async (req, res) => {
       // Accumulate total working hours
       user.totalWorkingHours += totalWorkingSeconds; // Store in seconds
 
-      user.punchInTime = null; // Reset punchInTime after punching out
+       // Reset punchInTime after punching out
 
       await user.save();
 
