@@ -42,10 +42,10 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   attendance: { type: Number, default: 0 },
-  punchInTime: { type: Date },
-  punchOutTime: { type: Date },
-  firstCheckInTime: { type: Date },
-  lastCheckOutTime: { type: Date },
+  punchInTime: String,
+  punchOutTime: String,
+  firstCheckInTime: String,
+  lastCheckOutTime: String,
   totalWorkingHours: { type: Number, default: 0 }, // Store in seconds
   lastCheckInDate: { type: Date },
   isApproved: { type: Boolean, default: false },
@@ -304,86 +304,102 @@ app.post('/update-attendance', async (req, res) => {
 // Utility function to format seconds into hours and minutes
 // Punch-In Endpoint
 app.post('/punch-in', async (req, res) => {
-  const { username, punchInTime } = req.body;
-
+  const { username } = req.body;
+  
   try {
-      const user = await User.findOne({ username });
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'User not found' });
+    }
 
-      if (!user) {
-          return res.status(400).json({ success: false, message: 'User not found' });
-      }
+    // Get the current time in UTC and convert to IST
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
+    const istTime = new Date(now.getTime() + istOffset);
 
-      const now = new Date(punchInTime); // Use the Date object from the request
+    // Format the IST time
+    const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
 
-      user.punchInTime = now; // Store as a Date object
-      user.firstCheckInTime = user.firstCheckInTime || now; // Set first check-in time if not set
-      user.lastCheckOutTime = null; // Reset last check-out time
+    // Get today's date in ISO format adjusted for IST
+    const todayDate = istTime.toISOString().split('T')[0];
 
-      await user.save();
+    // Check if the user has already punched in today
+    if (user.lastCheckInDate === todayDate) {
+      return res.status(400).json({ success: false, message: 'Already punched in today' });
+    }
 
-      res.json({
-          success: true,
-          message: 'Punched In successfully',
-          punchInTime: user.punchInTime,
-          firstCheckInTime: user.firstCheckInTime
-      });
+    if (user.lastCheckInDate !== todayDate) {
+      user.firstCheckInTime = formattedDateTime;
+      user.lastCheckOutTime = null;
+      user.lastCheckInDate = todayDate;
+      user.attendance += 1; // Increment attendance only once per day
+    }
+
+    user.punchInTime = formattedDateTime;
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Punched In successfully', 
+      punchInTime: user.punchInTime,
+      firstCheckInTime: user.firstCheckInTime 
+    });
 
   } catch (error) {
-      console.error('Error during punch-in:', error);
-      res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error during punch-in:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+
 app.post('/punch-out', async (req, res) => {
-  const { username, punchOutTime } = req.body;
-
+  const { username } = req.body;
+  
   try {
-      const user = await User.findOne({ username });
-      if (!user) {
-          return res.status(400).json({ success: false, message: 'User not found' });
-      }
-      if (!user.punchInTime) {
-          return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
-      }
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'User not found' });
+    }
 
-      const now = new Date(punchOutTime); // Use the Date object from the request
-      user.punchOutTime = now; // Store as a Date object
+    // Get the current time in UTC and convert to IST
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
+    const istTime = new Date(now.getTime() + istOffset);
 
-      // Calculate total working time in milliseconds
-      const totalWorkingMilliseconds = user.punchOutTime - user.punchInTime;
+    // Format the IST time
+    const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
 
-      // Convert to total seconds
-      const totalWorkingSeconds = Math.floor(totalWorkingMilliseconds / 1000);
+    // Check if the user has already punched out today
 
-      // Update user data
-      user.lastCheckOutTime = user.punchOutTime;
 
-      // Ensure totalWorkingHours is initialized
-      user.totalWorkingHours = user.totalWorkingHours || 0;
+    user.punchOutTime = formattedDateTime;
+    user.lastCheckOutTime = formattedDateTime;
 
-      // Accumulate total working hours
-      user.totalWorkingHours += totalWorkingSeconds; // Store in seconds
+    // Calculate total working hours
+    const firstCheckInTime = new Date(user.firstCheckInTime);
+    const lastCheckOutTime = new Date(user.lastCheckOutTime);
 
-      user.punchInTime = null; // Reset punchInTime after punching out
+    // Calculate the difference in milliseconds and convert to hours
+    const workingHours = (lastCheckOutTime - firstCheckInTime) / (1000 * 60 * 60);
+    user.totalWorkingHours += workingHours;
 
-      await user.save();
+    // Reset punchInTime to prevent multiple punch-outs
+    user.punchInTime = null;
 
-      // Convert totalWorkingHours to "0h 0m" format for output
-      const hours = Math.floor(user.totalWorkingHours / 3600);
-      const minutes = Math.floor((user.totalWorkingHours % 3600) / 60);
+    await user.save();
 
-      res.json({
-          success: true,
-          message: 'Punched Out successfully',
-          punchOutTime: user.punchOutTime,
-          lastCheckOutTime: user.lastCheckOutTime,
-          totalWorkingHours: `${hours}h ${minutes}m` // Format for output
-      });
+    res.json({ 
+      success: true, 
+      message: 'Punched Out successfully', 
+      punchOutTime: user.punchOutTime,
+      totalWorkingHours: user.totalWorkingHours 
+    });
+
   } catch (error) {
-      console.error('Error during punch-out:', error.message || error);
-      res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    console.error('Error during punch-out:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 
 
