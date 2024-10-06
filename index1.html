@@ -265,26 +265,31 @@
                 return;
             }
 
-            const punchInTime = new Date().getTime();
+            // Add this check right after retrieving the username and lastPunchInDate
+const currentDate = new Date().toDateString();
+if (currentDate === lastPunchInDate) {
+    hasPunchedInToday = true; // User has already punched in today
+}
 
-            fetch('https://srmgeolocation.onrender.com/punch-in', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, punchInTime }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Punched In at ' + new Date(punchInTime).toLocaleTimeString());
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('An error occurred. Please try again.');
-            });
+// Update this section in your initMap function where you check for punch-in
+if (distanceFromCenter <= regionCircle.getRadius()) {
+    if (!hasMarkedAttendance && !hasPunchedInToday) {
+        console.log('User is within region, marking attendance.');
+        showAttendanceMarkedPopup();
+        hasMarkedAttendance = true;
+        hasPunchedInToday = true; // User has punched in today
+        punchIn(); // Punch in here
+    } else if (hasPunchedInToday) {
+        alert('You have already punched in today.');
+    }
+} else {
+    if (hasMarkedAttendance) {
+        console.log('User is outside the region, punching out.');
+        punchOut();
+        hasMarkedAttendance = false; // Reset attendance state after punching out
+    }
+}
+
         }
 
         function punchOut() {
