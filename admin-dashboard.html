@@ -93,7 +93,7 @@
 
     <script>
         function updateRequestStatus(requestId, isApproved) {
-            const endpoint = isApproved ? 'https://geolocation-zmi9.onrender.com/admin/approve-request' : 'https://geolocation-zmi9.onrender.com/admin/disapprove-request';
+            const endpoint = isApproved ? 'https://srmgeolocation.onrender.com/admin/approve-request' : 'https://srmgeolocation.onrender.com/admin/disapprove-request';
 
             fetch(endpoint, {
                 method: 'POST',
@@ -115,7 +115,7 @@
         }
 
         function removeRequest(requestId) {
-            fetch('https://geolocation-zmi9.onrender.com/admin/delete-request', {
+            fetch('https://srmgeolocation.onrender.com/admin/delete-request', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,7 +136,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             // Fetch Offsite Requests
-            fetch('https://geolocation-zmi9.onrender.com/admin/offsite-requests')
+            fetch('https://srmgeolocation.onrender.com/admin/offsite-requests')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -165,7 +165,7 @@
                 .catch(error => console.error('Error:', error));
 
             // Fetch Work From Home Logs
-            fetch('https://geolocation-zmi9.onrender.com/admin/work-logs')
+            fetch('https://srmgeolocation.onrender.com/admin/work-logs')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
