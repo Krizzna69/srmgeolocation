@@ -98,6 +98,10 @@ app.get('/admin/queries', async (req, res) => {
       res.status(500).json({ success: false, message: 'Error fetching queries' });
   }
 });
+app.delete('/admin/queries/:id/remove', async (req, res) => {
+  await Query.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+});
 
 app.post('/submit-query', async (req, res) => {
   const { username, queryText } = req.body;
