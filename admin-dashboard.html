@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family:'Poppins';
             background-color: #f4f4f4;
             padding: 20px;
         }
@@ -45,20 +45,10 @@
         .btn-disapprove {
             background-color: #f44336;
         }
-
-        .btn-remove {
-            background-color: #ff5722;
-        }
-
-        h2 {
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
-    <h2>Admin Dashboard</h2>
-    
-    <h3>Offsite Work Requests</h3>
+    <h2>Admin Dashboard - Offsite Work Requests</h2>
     <table>
         <thead>
             <tr>
@@ -72,52 +62,49 @@
             </tr>
         </thead>
         <tbody id="requestsTable">
-            <!-- Offsite requests will be dynamically added here -->
-        </tbody>
-    </table>
-
-    <h3>Work From Home Logs</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Punch In Time</th>
-                <th>Punch Out Time</th>
-                <th>Total Working Hours</th>
-            </tr>
-        </thead>
-        <tbody id="workLogsTable">
-            <!-- Work logs will be dynamically added here -->
+            <!-- Requests will be dynamically added here -->
         </tbody>
     </table>
 
     <script>
+        function updateRequestStatus(requestId, isApproved) {
+            fetch('https://lastofus-dbww.onrender.com/admin/approve-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ requestId, isApproved }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Request status updated successfully');
+                    location.reload(); // Reload the page to reflect changes
+                } else {
+                    alert('Failed to update request status: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            const requestsTable = document.getElementById('requestsTable');
-            const workLogsTable = document.getElementById('workLogsTable');
-            const loadingMessage = document.createElement('p');
-            loadingMessage.textContent = 'Loading...';
-            loadingMessage.style.textAlign = 'center';
-            document.body.appendChild(loadingMessage);
-    
-            // Fetch Offsite Requests
             fetch('https://srmgeolocation.onrender.com/admin/offsite-requests')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        const requestsTable = document.getElementById('requestsTable');
                         data.requests.forEach(request => {
                             const row = document.createElement('tr');
                             row.innerHTML = `
                                 <td>${request.username}</td>
                                 <td>${new Date(request.fromTime).toLocaleString()}</td>
-                                <td>${new Date(request.toTime).toLocaleString()}</td>
+                                <td>${new Date(request.leavingTime).toLocaleString()}</td>
                                 <td>${request.location}</td>
-                                <td>${request.currentLocation ? `${request.currentLocation.lat}` : 'Not Submitted'}</td>
+                                <td>${request.currentLocation ? `${request.currentLocation.lat}, ${request.currentLocation.lon}` : 'Not Submitted'}</td>
                                 <td>${request.isApproved === null ? 'Pending' : request.isApproved ? 'Approved' : 'Disapproved'}</td>
                                 <td>
                                     <button class="btn btn-approve" onclick="updateRequestStatus('${request._id}', true)">Approve</button>
                                     <button class="btn btn-disapprove" onclick="updateRequestStatus('${request._id}', false)">Disapprove</button>
-                                    <button class="btn btn-remove" onclick="removeRequest('${request._id}')">Remove</button>
                                 </td>
                             `;
                             requestsTable.appendChild(row);
@@ -126,32 +113,8 @@
                         alert('Failed to load requests');
                     }
                 })
-                .catch(error => console.error('Error:', error))
-                .finally(() => loadingMessage.remove());
-    
-            // Fetch Work From Home Logs
-            fetch('https://srmgeolocation.onrender.com/admin/work-logs')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        data.workLogs.forEach(log => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td>${log.username}</td>
-                                <td>${new Date(log.punchInTime).toLocaleString()}</td>
-                                <td>${new Date(log.punchOutTime).toLocaleString()}</td>
-                                <td>${Math.floor(log.totalWorkingHours / 3600)}h ${Math.floor((log.totalWorkingHours % 3600) / 60)}m</td>
-                            `;
-                            workLogsTable.appendChild(row);
-                        });
-                    } else {
-                        alert('Failed to load work logs');
-                    }
-                })
-                .catch(error => console.error('Error:', error))
-                .finally(() => loadingMessage.remove());
+                .catch(error => console.error('Error:', error));
         });
     </script>
-    
 </body>
 </html>
