@@ -389,7 +389,7 @@ app.post('/punch-out', async (req, res) => {
 
       // Reset punchInTime to prevent multiple punch-outs
       user.punchInTime = null;
-
+      console.log(user.totalWorkingHours);
       await user.save();
 
       res.json({ 
