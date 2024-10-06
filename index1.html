@@ -147,6 +147,8 @@
         let hasPunchedInToday = false;
         let username = localStorage.getItem('username');
         let lastPunchInDate = localStorage.getItem('lastPunchInDate');
+        let distanceFromCenter; // Declare this variable for distance checking
+        const regionCircleRadius = 50; // Define the radius for easy access
 
         // Reset state if a new day
         const currentDate = new Date().toDateString();
@@ -189,7 +191,7 @@
                 fillOpacity: 0.35,
                 map,
                 center: regionCenter,
-                radius: 50,
+                radius: regionCircleRadius,
             });
             const userMarker = new google.maps.Marker({
                 map: map,
@@ -208,7 +210,7 @@
                         };
                         userMarker.setPosition(pos);
                         map.setCenter(pos);
-                        const distanceFromCenter = google.maps.geometry.spherical.computeDistanceBetween(
+                        distanceFromCenter = google.maps.geometry.spherical.computeDistanceBetween(
                             new google.maps.LatLng(pos.lat, pos.lng),
                             regionCircle.getCenter()
                         );
@@ -260,37 +262,34 @@
         }
 
         function punchIn() {
-    if (!username) {
-        alert('Error: No username provided.');
-        return;
-    }
+            if (!username) {
+                alert('Error: No username provided.');
+                return;
+            }
 
-    // Check if the user has already punched in today
-    const currentDate = new Date().toDateString();
-    if (currentDate === lastPunchInDate) {
-        hasPunchedInToday = true; // User has already punched in today
-    }
+            // Update the localStorage for punch-in tracking
+            const punchInTime = new Date().toISOString();
+            localStorage.setItem('lastPunchInDate', new Date().toDateString());
 
-    // Update this section in your initMap function where you check for punch-in
-    if (distanceFromCenter <= regionCircle.getRadius()) {
-        if (!hasMarkedAttendance && !hasPunchedInToday) {
-            console.log('User is within region, marking attendance.');
-            showAttendanceMarkedPopup();
-            hasMarkedAttendance = true;
-            hasPunchedInToday = true; // User has punched in today
-            punchIn(); // Punch in here
-        } else if (hasPunchedInToday) {
-            alert('You have already punched in today.');
+            fetch('https://srmgeolocation.onrender.com/punch-in', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, punchInTime }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAttendanceMarkedPopup();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+            });
         }
-    } else {
-        if (hasMarkedAttendance) {
-            console.log('User is outside the region, punching out.');
-            punchOut();
-            hasMarkedAttendance = false; // Reset attendance state after punching out
-        }
-    }
-}
-
 
         function punchOut() {
             if (!username) {
@@ -322,7 +321,6 @@
 
         initMap();
     </script>
-    
 
     <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyASAMgt4KkC1Hr4bbf8A8JBGwAcpwlAv6o&callback=initMap&v=weekly&libraries=geometry"
