@@ -98,14 +98,13 @@ app.post('/work-log', async (req, res) => {
           return res.status(400).json({ success: false, message: 'User not found' });
       }
 
-      // Convert the times to Date objects in UTC
-      const punchInDate = new Date(`${new Date().toISOString().split('T')[0]}T${punchInTime}:00Z`);
-      const punchOutDate = new Date(`${new Date().toISOString().split('T')[0]}T${punchOutTime}:00Z`);
-
-      // Convert to IST (+05:30)
-      const IST_OFFSET = 5.5 * 60 * 60; // Offset in milliseconds
-      const punchInDateIST = new Date(punchInDate.getTime() + IST_OFFSET);
-      const punchOutDateIST = new Date(punchOutDate.getTime() + IST_OFFSET);
+      // Assuming punchInTime and punchOutTime are strings like "HH:MM"
+      const [punchInHours, punchInMinutes] = punchInTime.split(':').map(Number);
+      const [punchOutHours, punchOutMinutes] = punchOutTime.split(':').map(Number);
+      
+      const now = new Date(); // Get the current date
+      const punchInDateIST = new Date(now.getFullYear(), now.getMonth(), now.getDate(), punchInHours, punchInMinutes);
+      const punchOutDateIST = new Date(now.getFullYear(), now.getMonth(), now.getDate(), punchOutHours, punchOutMinutes);
 
       // Validate date objects
       if (isNaN(punchInDateIST) || isNaN(punchOutDateIST)) {
