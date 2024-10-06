@@ -84,14 +84,14 @@
                 <th>Punch In Time</th>
                 <th>Punch Out Time</th>
                 <th>Total Working Hours</th>
+                <th>Status</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="workLogsTable">
             <!-- Work logs will be dynamically added here -->
         </tbody>
     </table>
-
-
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -110,7 +110,7 @@
                                 <td>${new Date(request.fromTime).toLocaleString()}</td>
                                 <td>${new Date(request.leavingTime).toLocaleString()}</td>
                                 <td>${request.location}</td>
-                                <td>${request.currentLocation ? `${request.currentLocation.lat}, ${request.currentLocation.lon}` : 'Not Submitted'}</td>
+                                <td>${request.currentLocation ? `${request.currentLocation.lat}` : 'Not Submitted'}</td>
                                 <td>${request.isApproved === null ? 'Pending' : request.isApproved ? 'Approved' : 'Disapproved'}</td>
                                 <td>
                                     <button class="btn btn-approve" onclick="updateRequestStatus('${request._id}', true)">Approve</button>
@@ -140,6 +140,12 @@
                                 <td>${new Date(log.punchInTime).toLocaleString()}</td>
                                 <td>${new Date(log.punchOutTime).toLocaleString()}</td>
                                 <td>${totalHours}h ${totalMinutes}m</td>
+                                <td>${log.isApproved === null ? 'Pending' : log.isApproved ? 'Approved' : 'Disapproved'}</td>
+                                <td>
+                                    <button class="btn btn-approve" onclick="updateWorkLogStatus('${log._id}', true)">Approve</button>
+                                    <button class="btn btn-disapprove" onclick="updateWorkLogStatus('${log._id}', false)">Disapprove</button>
+                                    <button class="btn btn-remove" onclick="removeWorkLog('${log._id}')">Remove</button>
+                                </td>
                             `;
                             workLogsTable.appendChild(row);
                         });
@@ -214,6 +220,49 @@
                     location.reload(); // Reload the page to reflect changes
                 } else {
                     alert('Failed to remove request: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Functions for Work Log Actions
+        function updateWorkLogStatus(workLogId, isApproved) {
+            const endpoint = isApproved ? 'https://srmgeolocation.onrender.com/admin/approve-worklog' : 'https://srmgeolocation.onrender.com/admin/disapprove-worklog';
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ workLogId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Work log ${isApproved ? 'approved' : 'disapproved'} successfully`);
+                    location.reload(); // Reload the page to reflect changes
+                } else {
+                    alert('Failed to update work log status: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function removeWorkLog(workLogId) {
+            fetch('https://srmgeolocation.onrender.com/admin/delete-worklog', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ workLogId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Work log removed successfully');
+                    location.reload(); // Reload the page to reflect changes
+                } else {
+                    alert('Failed to remove work log: ' + data.message);
                 }
             })
             .catch(error => console.error('Error:', error));

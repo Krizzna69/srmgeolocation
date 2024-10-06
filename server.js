@@ -64,7 +64,8 @@ const workLogSchema = new mongoose.Schema({
   username: { type: String, required: true },
   punchInTime: { type: Date, required: true },
   punchOutTime: { type: Date, required: true },
-  totalWorkingHours: { type: Number, default: 0 }, // Store total working hours in seconds
+  totalWorkingHours: { type: Number, default: 0 },
+  isApproved: { type: Boolean, default: null }, // Store total working hours in seconds
 });
 
 const WorkLog = mongoose.model('WorkLog', workLogSchema);
@@ -82,6 +83,61 @@ function formatTime(totalSeconds) {
   return `${hours}h ${minutes}m`;
 }
 
+app.post('/admin/approve-worklog', async (req, res) => {
+  const { workLogId } = req.body;
+
+  try {
+      const workLog = await WorkLog.findById(workLogId);
+      if (!workLog) {
+          return res.status(404).json({ success: false, message: 'Work log not found' });
+      }
+
+      workLog.isApproved = true;
+      await workLog.save();
+
+      res.json({ success: true, message: 'Work log approved successfully' });
+  } catch (error) {
+      console.error('Error approving work log:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Example route to disapprove a work log
+app.post('/admin/disapprove-worklog', async (req, res) => {
+  const { workLogId } = req.body;
+
+  try {
+      const workLog = await WorkLog.findById(workLogId);
+      if (!workLog) {
+          return res.status(404).json({ success: false, message: 'Work log not found' });
+      }
+
+      workLog.isApproved = false;
+      await workLog.save();
+
+      res.json({ success: true, message: 'Work log disapproved successfully' });
+  } catch (error) {
+      console.error('Error disapproving work log:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Example route to delete a work log
+app.post('/admin/delete-worklog', async (req, res) => {
+  const { workLogId } = req.body;
+
+  try {
+      const result = await WorkLog.findByIdAndDelete(workLogId);
+      if (!result) {
+          return res.status(404).json({ success: false, message: 'Work log not found' });
+      }
+
+      res.json({ success: true, message: 'Work log removed successfully' });
+  } catch (error) {
+      console.error('Error removing work log:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 // Punch In Route
 // Assuming you have Mongoose set up and a User model defined
 app.post('/work-log', async (req, res) => {
@@ -98,36 +154,32 @@ app.post('/work-log', async (req, res) => {
           return res.status(400).json({ success: false, message: 'User not found' });
       }
 
-      // Assuming punchInTime and punchOutTime are strings like "HH:MM"
-      const [punchInHours, punchInMinutes] = punchInTime.split(':').map(Number);
-      const [punchOutHours, punchOutMinutes] = punchOutTime.split(':').map(Number);
-      
-      const now = new Date(); // Get the current date
-      const punchInDateIST = new Date(now.getFullYear(), now.getMonth(), now.getDate(), punchInHours, punchInMinutes);
-      const punchOutDateIST = new Date(now.getFullYear(), now.getMonth(), now.getDate(), punchOutHours, punchOutMinutes);
+      // Convert the times to Date objects
+      const punchInDate = new Date(punchInTime);
+      const punchOutDate = new Date(punchOutTime);
 
       // Validate date objects
-      if (isNaN(punchInDateIST) || isNaN(punchOutDateIST)) {
+      if (isNaN(punchInDate) || isNaN(punchOutDate)) {
           return res.status(400).json({ success: false, message: 'Invalid date format' });
       }
 
       // Validate punch out time is after punch in time
-      if (punchOutDateIST <= punchInDateIST) {
+      if (punchOutDate <= punchInDate) {
           return res.status(400).json({ success: false, message: 'Punch Out time must be after Punch In time' });
       }
 
       // Create a new work log entry
       const workLog = new WorkLog({
           username: user.username,
-          punchInTime: punchInDateIST,
-          punchOutTime: punchOutDateIST,
-          totalWorkingHours: (punchOutDateIST - punchInDateIST) / 1000, // Store in seconds
+          punchInTime: punchInDate,
+          punchOutTime: punchOutDate,
+          totalWorkingHours: (punchOutDate - punchInDate) / 1000, // Store in seconds
       });
       await workLog.save();
 
       // Update the user's work logs
       user.workLogs = user.workLogs || [];
-      user.workLogs.push({ punchInTime: punchInDateIST, punchOutTime: punchOutDateIST });
+      user.workLogs.push({ punchInTime: punchInDate, punchOutTime: punchOutDate });
       await user.save();
 
       res.json({ success: true, message: 'Work hours logged successfully' });
