@@ -333,7 +333,7 @@ app.post('/punch-in', async (req, res) => {
 
       // Update attendance
       if (user.lastCheckInDate !== todayDate) {
-          user.firstCheckInTime = formattedDateTime;
+          user.firstCheckInTime = formattedDateTime; // Set first check-in time
           user.lastCheckInDate = todayDate;
           user.attendance += 1; // Increment attendance only once per day
       }
@@ -381,7 +381,11 @@ app.post('/punch-out', async (req, res) => {
 
       // Calculate the difference in milliseconds and convert to hours
       const workingHours = (lastCheckOutTime - firstCheckInTime) / (1000 * 60 * 60);
-      user.totalWorkingHours += workingHours;
+      
+      // Only add to total working hours if firstCheckInTime is set
+      if (user.firstCheckInTime) {
+          user.totalWorkingHours += workingHours;
+      }
 
       // Reset punchInTime to prevent multiple punch-outs
       user.punchInTime = null;
@@ -400,7 +404,6 @@ app.post('/punch-out', async (req, res) => {
       res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 
 
