@@ -305,99 +305,99 @@ app.post('/update-attendance', async (req, res) => {
 // Punch-In Endpoint
 app.post('/punch-in', async (req, res) => {
   const { username } = req.body;
-  
+
   try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found' });
-    }
+      const user = await User.findOne({ username });
+      if (!user) {
+          return res.status(400).json({ success: false, message: 'User not found' });
+      }
 
-    // Get the current time in UTC and convert to IST
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
-    const istTime = new Date(now.getTime() + istOffset);
+      // Get the current time in UTC and convert to IST
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
+      const istTime = new Date(now.getTime() + istOffset);
 
-    // Format the IST time
-    const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
+      // Format the IST time
+      const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
 
-    // Get today's date in ISO format adjusted for IST
-    const todayDate = istTime.toISOString().split('T')[0];
+      // Get today's date in ISO format adjusted for IST
+      const todayDate = istTime.toISOString().split('T')[0];
 
-    // Check if the user has already punched in today
-    if (user.lastCheckInDate === todayDate) {
-      return res.status(400).json({ success: false, message: 'Already punched in today' });
-    }
+      // Check if the user has already punched in today
+      if (user.lastCheckInDate === todayDate) {
+          return res.status(400).json({ success: false, message: 'Already punched in today' });
+      }
 
-    if (user.lastCheckInDate !== todayDate) {
-      user.firstCheckInTime = formattedDateTime;
+      // If it's a new day, reset check-out time
       user.lastCheckOutTime = null;
-      user.lastCheckInDate = todayDate;
-      user.attendance += 1; // Increment attendance only once per day
-    }
 
-    user.punchInTime = formattedDateTime;
-    await user.save();
+      // Update attendance
+      if (user.lastCheckInDate !== todayDate) {
+          user.firstCheckInTime = formattedDateTime;
+          user.lastCheckInDate = todayDate;
+          user.attendance += 1; // Increment attendance only once per day
+      }
 
-    res.json({ 
-      success: true, 
-      message: 'Punched In successfully', 
-      punchInTime: user.punchInTime,
-      firstCheckInTime: user.firstCheckInTime 
-    });
+      user.punchInTime = formattedDateTime; // Update punch-in time
+      await user.save();
+
+      res.json({ 
+          success: true, 
+          message: 'Punched In successfully', 
+          punchInTime: user.punchInTime,
+          firstCheckInTime: user.firstCheckInTime 
+      });
 
   } catch (error) {
-    console.error('Error during punch-in:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+      console.error('Error during punch-in:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-
 app.post('/punch-out', async (req, res) => {
   const { username } = req.body;
-  
+
   try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found' });
-    }
+      const user = await User.findOne({ username });
+      if (!user) {
+          return res.status(400).json({ success: false, message: 'User not found' });
+      }
 
-    // Get the current time in UTC and convert to IST
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
-    const istTime = new Date(now.getTime() + istOffset);
+      // Get the current time in UTC and convert to IST
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
+      const istTime = new Date(now.getTime() + istOffset);
 
-    // Format the IST time
-    const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
+      // Format the IST time
+      const formattedDateTime = istTime.toISOString().replace('T', ' ').substring(0, 19);
 
-    // Check if the user has already punched out today
+      // Set punch-out time
+      user.punchOutTime = formattedDateTime;
+      user.lastCheckOutTime = formattedDateTime;
 
+      // Calculate total working hours
+      const firstCheckInTime = new Date(user.firstCheckInTime);
+      const lastCheckOutTime = new Date(user.lastCheckOutTime);
 
-    user.punchOutTime = formattedDateTime;
-    user.lastCheckOutTime = formattedDateTime;
+      // Calculate the difference in milliseconds and convert to hours
+      const workingHours = (lastCheckOutTime - firstCheckInTime) / (1000 * 60 * 60);
+      user.totalWorkingHours += workingHours;
 
-    // Calculate total working hours
-    const firstCheckInTime = new Date(user.firstCheckInTime);
-    const lastCheckOutTime = new Date(user.lastCheckOutTime);
+      // Reset punchInTime to prevent multiple punch-outs
+      user.punchInTime = null;
 
-    // Calculate the difference in milliseconds and convert to hours
-    const workingHours = (lastCheckOutTime - firstCheckInTime) / (1000 * 60 * 60);
-    user.totalWorkingHours += workingHours;
+      await user.save();
 
-    // Reset punchInTime to prevent multiple punch-outs
-    user.punchInTime = null;
-
-    await user.save();
-
-    res.json({ 
-      success: true, 
-      message: 'Punched Out successfully', 
-      punchOutTime: user.punchOutTime,
-      totalWorkingHours: user.totalWorkingHours 
-    });
+      res.json({ 
+          success: true, 
+          message: 'Punched Out successfully', 
+          punchOutTime: user.punchOutTime,
+          totalWorkingHours: user.totalWorkingHours 
+      });
 
   } catch (error) {
-    console.error('Error during punch-out:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+      console.error('Error during punch-out:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
