@@ -42,24 +42,25 @@ const OffsiteRequest = mongoose.model('OffsiteRequest', offsiteRequestSchema);
 
 // Define User schema with a reference to OffsiteRequest
 const userSchema = new mongoose.Schema({
-  username: String,
-  password: String,
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
   attendance: { type: Number, default: 0 },
-  punchInTime: String,
-  punchOutTime: String,
-  firstCheckInTime: String,
-  lastCheckOutTime: String,
-  totalWorkingHours: String,
-  lastCheckInDate: String,
+  punchInTime: { type: Date },
+  punchOutTime: { type: Date },
+  firstCheckInTime: { type: Date },
+  lastCheckOutTime: { type: Date },
+  totalWorkingHours: { type: Number, default: 0 }, // Store in seconds
+  lastCheckInDate: { type: Date },
   isApproved: { type: Boolean, default: false },
   location: {
-    lat: Number,
-    lon: Number
+    lat: { type: Number },
+    lon: { type: Number }
   },
   department: String, // New field for department
   idNumber: String,   // New field for ID number
   position: String    // New field for position
 });
+
 
 const User = mongoose.model('User', userSchema);
 
@@ -239,26 +240,26 @@ app.post('/punch-in', async (req, res) => {
       if (!user) return res.status(400).json({ success: false, message: 'User not found' });
 
       const now = new Date();
-      const formattedTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
       
-      user.punchInTime = formattedTime; // Store only time
-      user.firstCheckInTime = user.firstCheckInTime || formattedTime; // Set first check-in time if not set
+      user.punchInTime = now; // Store as a Date object
+      user.firstCheckInTime = user.firstCheckInTime || now; // Set first check-in time if not set
       user.lastCheckOutTime = null; // Reset last check-out time
       
       await user.save();
       
       res.json({
-        success: true,
-        message: 'Punched In successfully',
-        punchInTime: user.punchInTime,
-        firstCheckInTime: user.firstCheckInTime
-    });
-    
+          success: true,
+          message: 'Punched In successfully',
+          punchInTime: user.punchInTime,
+          firstCheckInTime: user.firstCheckInTime
+      });
+      
   } catch (error) {
-    console.error('Error during punch-in:', error);
-    res.status(500).json({ success: false, message:'Server error' });
- }
+      console.error('Error during punch-in:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
+
 
 app.post('/punch-out', async (req, res) => {
   const { username } = req.body;
@@ -269,48 +270,44 @@ app.post('/punch-out', async (req, res) => {
       if (!user.punchInTime) return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
 
       const now = new Date();
-      const formattedPunchOutTime = now.toTimeString().split(' ')[0]; // Get time in "HH:mm:ss" format
+      user.punchOutTime = now; // Store as a Date object
 
-      // Parse punch-in and punch-out times
-      const punchInParts = user.punchInTime.split(':').map(Number);
-      const punchOutParts = formattedPunchOutTime.split(':').map(Number);
+      // Calculate total working time in milliseconds
+      const totalWorkingMilliseconds = user.punchOutTime - user.punchInTime;
 
-      // Convert to seconds
-      const punchInSeconds = punchInParts[0] * 3600 + punchInParts[1] * 60 + punchInParts[2];
-      const punchOutSeconds = punchOutParts[0] * 3600 + punchOutParts[1] * 60 + punchOutParts[2];
-
-      // Calculate total working seconds
-      let totalWorkingSeconds = punchOutSeconds - punchInSeconds;
-
-      // Handle overnight shifts (if punch out time is earlier than punch in time)
-      if (totalWorkingSeconds < 0) totalWorkingSeconds += 24 * 3600; // Add 24 hours in seconds
+      // Convert to total seconds
+      const totalWorkingSeconds = Math.floor(totalWorkingMilliseconds / 1000);
 
       // Update user data
-      user.punchOutTime = formattedPunchOutTime; // Store only time
-      user.lastCheckOutTime = formattedPunchOutTime;
+      user.lastCheckOutTime = user.punchOutTime;
 
       // Ensure totalWorkingHours is initialized
       user.totalWorkingHours = user.totalWorkingHours || 0;
 
       // Accumulate total working hours
-      user.totalWorkingHours += totalWorkingSeconds;
+      user.totalWorkingHours += totalWorkingSeconds; // Store in seconds
 
       user.punchInTime = null; // Reset punchInTime after punching out
 
       await user.save();
 
+      // Convert totalWorkingHours to "0h 0m" format for output
+      const hours = Math.floor(user.totalWorkingHours / 3600);
+      const minutes = Math.floor((user.totalWorkingHours % 3600) / 60);
+      
       res.json({
           success: true,
           message: 'Punched Out successfully',
           punchOutTime: user.punchOutTime,
           lastCheckOutTime: user.lastCheckOutTime,
-          totalWorkingHours: user.totalWorkingHours 
+          totalWorkingHours: `${hours}h ${minutes}m` // Format for output
       });
   } catch (error) {
       console.error('Error during punch-out:', error.message || error);
       res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
+
 
 
 
