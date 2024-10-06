@@ -71,6 +71,9 @@
 </head>
 <body>
     <div class="container">
+        <div class="header">
+            <img src="Group 33.png" alt="Home" onclick="redirecthome()" >
+        </div>
         <h2>Submit a Query</h2>
         <form id="queryForm">
             <input type="hidden" id="username" value="USER_USERNAME_HERE"> <!-- Set this dynamically -->
@@ -81,9 +84,11 @@
     </div>
 
     <script>
+
+           
         document.addEventListener('DOMContentLoaded', function() {
             // Replace 'USER_USERNAME_HERE' with the actual username dynamically
-            const username = 'john_doe'; // Replace with actual method to get the username
+            const username = localStorage.getItem('username'); // Replace with actual method to get the username
             document.getElementById('username').value = username;
 
             document.getElementById('queryForm').addEventListener('submit', function(event) {
