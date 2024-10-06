@@ -81,46 +81,33 @@ const adminCredentials = {
 
 
 // Punch In Route
-app.post('/work-log/punch-in', async (req, res) => {
-  const { username, punchInTime } = req.body;
+// Assuming you have Mongoose set up and a User model defined
+app.post('/work-log', async (req, res) => {
+  const { username, punchInTime, punchOutTime } = req.body;
 
   try {
-      const log = new WorkLog({
-          username,
-          punchInTime: new Date(punchInTime),
-      });
-      await log.save();
-      res.json({ success: true, message: 'Punched In successfully' });
-  } catch (error) {
-      console.error('Error during punch-in:', error);
-      res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
+      const user = await User.findOne({ username });
 
-// Punch Out Route
-app.post('/work-log/punch-out', async (req, res) => {
-  const { username, punchOutTime } = req.body;
-
-  try {
-      const log = await WorkLog.findOne({ username }).sort({ createdAt: -1 }); // Get the latest log
-
-      if (!log || !log.punchInTime) {
-          return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
+      if (!user) {
+          return res.status(400).json({ success: false, message: 'User not found' });
       }
 
-      log.punchOutTime = new Date(punchOutTime);
-      const totalWorkingMilliseconds = log.punchOutTime - log.punchInTime;
-      log.totalWorkingHours = Math.floor(totalWorkingMilliseconds / 1000); // Convert to seconds
+      // Convert the times to Date objects
+      const punchInDate = new Date(punchInTime);
+      const punchOutDate = new Date(punchOutTime);
 
-      await log.save();
+      // Validate punch out time is after punch in time
+      if (punchOutDate <= punchInDate) {
+          return res.status(400).json({ success: false, message: 'Punch Out time must be after Punch In time' });
+      }
 
-      res.json({
-          success: true,
-          message: 'Punched Out successfully',
-          totalWorkingHours: log.totalWorkingHours
-      });
+      // Create or update the work log for the user
+      user.workLogs.push({ punchInTime: punchInDate, punchOutTime: punchOutDate });
+      await user.save();
+
+      res.json({ success: true, message: 'Work hours logged successfully' });
   } catch (error) {
-      console.error('Error during punch-out:', error);
+      console.error('Error logging work hours:', error);
       res.status(500).json({ success: false, message: 'Server error' });
   }
 });
