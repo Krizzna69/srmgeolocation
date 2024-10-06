@@ -306,7 +306,7 @@ app.post('/punch-in', async (req, res) => {
       
       user.punchInTime = now; // Store as a Date object
       user.firstCheckInTime = now; // Set first check-in time if not set
-      
+      user.attendance += 1;
       
       await user.save();
       
