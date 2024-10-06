@@ -85,11 +85,10 @@ function formatTime(totalSeconds) {
 // Punch In Route
 // Assuming you have Mongoose set up and a User model defined
 app.post('/work-log', async (req, res) => {
-  console.log('Received request:', req.body); // Log the incoming request data
   const { username, punchInTime, punchOutTime } = req.body;
 
   try {
-      // Existing validation logic
+      // Validate input
       if (!username || !punchInTime || !punchOutTime) {
           return res.status(400).json({ success: false, message: 'All fields are required' });
       }
@@ -113,8 +112,17 @@ app.post('/work-log', async (req, res) => {
           return res.status(400).json({ success: false, message: 'Punch Out time must be after Punch In time' });
       }
 
-      // Create or update the work log for the user
-      user.workLogs = user.workLogs || []; // Ensure workLogs array exists
+      // Create a new work log entry
+      const workLog = new WorkLog({
+          username: user.username,
+          punchInTime: punchInDate,
+          punchOutTime: punchOutDate,
+          totalWorkingHours: (punchOutDate - punchInDate) / 1000, // Store in seconds
+      });
+      await workLog.save();
+
+      // Update the user's work logs
+      user.workLogs = user.workLogs || [];
       user.workLogs.push({ punchInTime: punchInDate, punchOutTime: punchOutDate });
       await user.save();
 
