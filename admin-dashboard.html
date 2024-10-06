@@ -14,6 +14,24 @@
             padding: 20px;
         }
 
+        .tabs {
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tab-button.active {
+            background-color: #45a049;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -38,10 +56,6 @@
             cursor: pointer;
         }
 
-        .btn-submit {
-            background-color: #4CAF50; /* Green */
-        }
-
         .btn-approve {
             background-color: #4CAF50; /* Green */
         }
@@ -53,52 +67,72 @@
         .btn-remove {
             background-color: #ff5722; /* Orange */
         }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h2>Admin Dashboard</h2>
 
-    <h3>Offsite Work Requests</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>From Time</th>
-                <th>To Time</th>
-                <th>Location</th>
-                <th>Current Location</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="requestsTable">
-            <!-- Requests will be dynamically added here -->
-        </tbody>
-    </table>
+    <div class="tabs">
+        <button class="tab-button active" onclick="showTab('offsite')">Offsite Work Requests</button>
+        <button class="tab-button" onclick="showTab('worklog')">Work From Home Logs</button>
+        <button class="tab-button" onclick="showTab('queries')">Queries</button>
+    </div>
 
-    <h3>Work From Home Logs</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Punch In Time</th>
-                <th>Punch Out Time</th>
-                <th>Total Working Hours</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="workLogsTable">
-            <!-- Work logs will be dynamically added here -->
-        </tbody>
-    </table>
+    <div id="offsite" class="tab-content">
+        <h3>Offsite Work Requests</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>From Time</th>
+                    <th>To Time</th>
+                    <th>Location</th>
+                    <th>Current Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="requestsTable">
+                <!-- Requests will be dynamically added here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="worklog" class="tab-content hidden">
+        <h3>Work From Home Logs</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Punch In Time</th>
+                    <th>Punch Out Time</th>
+                    <th>Total Working Hours</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="workLogsTable">
+                <!-- Work logs will be dynamically added here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="queries" class="tab-content hidden">
+        <h3>Queries</h3>
+        <!-- Add your Queries table or content here -->
+        <p>No queries to display.</p>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const requestsTable = document.getElementById('requestsTable');
             const workLogsTable = document.getElementById('workLogsTable');
 
-            // Function to fetch Offsite Requests
+            // Load Offsite Requests
             fetch('https://srmgeolocation.onrender.com/admin/offsite-requests')
                 .then(response => response.json())
                 .then(data => {
@@ -126,7 +160,7 @@
                 })
                 .catch(error => console.error('Error:', error));
 
-            // Function to fetch Work From Home Logs
+            // Load Work From Home Logs
             fetch('https://srmgeolocation.onrender.com/admin/work-logs')
                 .then(response => response.json())
                 .then(data => {
@@ -154,119 +188,27 @@
                     }
                 })
                 .catch(error => console.error('Error:', error));
-
-            // Form submission to log work hours
-            document.getElementById('logWorkHoursForm').addEventListener('submit', function(event) {
-                event.preventDefault();
-
-                const username = document.getElementById('username').value;
-                const punchInTime = document.getElementById('punchInTime').value;
-                const punchOutTime = document.getElementById('punchOutTime').value;
-
-                fetch('https://srmgeolocation.onrender.com/work-log', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ username, punchInTime, punchOutTime }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Work hours logged successfully');
-                        location.reload(); // Reload to show the updated logs
-                    } else {
-                        alert('Failed to log work hours: ' + data.message);
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-            });
         });
 
-        function updateRequestStatus(requestId, isApproved) {
-            const endpoint = isApproved ? 'https://srmgeolocation.onrender.com/admin/approve-request' : 'https://srmgeolocation.onrender.com/admin/disapprove-request';
+        function showTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-button');
 
-            fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ requestId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(`Request ${isApproved ? 'approved' : 'disapproved'} successfully`);
-                    location.reload(); // Reload the page to reflect changes
-                } else {
-                    alert('Failed to update request status: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
+            tabs.forEach(tab => {
+                tab.classList.add('hidden');
+            });
+
+            buttons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            document.getElementById(tabName).classList.remove('hidden');
+            document.querySelector(`.tab-button[onclick*='${tabName}']`).classList.add('active');
         }
 
-        function removeRequest(requestId) {
-            fetch('https://srmgeolocation.onrender.com/admin/delete-request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ requestId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Request removed successfully');
-                    location.reload(); // Reload the page to reflect changes
-                } else {
-                    alert('Failed to remove request: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
+        // Functions for Request and Work Log Actions...
+        // Include your existing fetch calls and action functions here
 
-        // Functions for Work Log Actions
-        function updateWorkLogStatus(workLogId, isApproved) {
-            const endpoint = isApproved ? 'https://srmgeolocation.onrender.com/admin/approve-worklog' : 'https://srmgeolocation.onrender.com/admin/disapprove-worklog';
-
-            fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ workLogId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(`Work log ${isApproved ? 'approved' : 'disapproved'} successfully`);
-                    location.reload(); // Reload the page to reflect changes
-                } else {
-                    alert('Failed to update work log status: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        function removeWorkLog(workLogId) {
-            fetch('https://srmgeolocation.onrender.com/admin/delete-worklog', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ workLogId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Work log removed successfully');
-                    location.reload(); // Reload the page to reflect changes
-                } else {
-                    alert('Failed to remove work log: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
     </script>
 </body>
 </html>

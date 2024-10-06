@@ -156,6 +156,10 @@
                 <span>Employee Details</span>
                 <span>&#9658;</span>
             </li>
+            <li onclick="redirectque()">
+                <span>Queries</span>
+                <span>&#9658;</span>
+            </li>
         </ul>
     </div>
     <script>
@@ -179,7 +183,9 @@
         function redirectTomyactivity() {
             window.location.href = 'Myactivity.html';
         }
-
+        function redirectque(){
+            window.location.href = 'query.html'
+        }
         document.addEventListener("DOMContentLoaded", () => {
             checkAttendanceReset();
             initMap();

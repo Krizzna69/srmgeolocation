@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit a Query</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: none;
+        }
+
+        .btn-submit {
+            background-color: #2196F3; /* Blue */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-submit:hover {
+            background-color: #1976D2; /* Darker blue */
+        }
+
+        .alert {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .alert.success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+
+        .alert.error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Submit a Query</h2>
+        <form id="queryForm">
+            <input type="hidden" id="username" value="USER_USERNAME_HERE"> <!-- Set this dynamically -->
+            <textarea id="queryText" placeholder="Write your query here..." required></textarea>
+            <button type="submit" class="btn-submit">Submit Query</button>
+        </form>
+        <div id="responseMessage" class="alert"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Replace 'USER_USERNAME_HERE' with the actual username dynamically
+            const username = 'john_doe'; // Replace with actual method to get the username
+            document.getElementById('username').value = username;
+
+            document.getElementById('queryForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const queryText = document.getElementById('queryText').value;
+                const user = document.getElementById('username').value;
+
+                fetch('https://srmgeolocation.onrender.com/submit-query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username: user, queryText }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const responseMessage = document.getElementById('responseMessage');
+                    if (data.success) {
+                        responseMessage.textContent = 'Query submitted successfully!';
+                        responseMessage.className = 'alert success';
+                    } else {
+                        responseMessage.textContent = 'Failed to submit query: ' + data.message;
+                        responseMessage.className = 'alert error';
+                    }
+                    responseMessage.style.display = 'block';
+                    document.getElementById('queryText').value = ''; // Clear the textarea
+                })
+                .catch(error => {
+                    const responseMessage = document.getElementById('responseMessage');
+                    responseMessage.textContent = 'Error submitting query: ' + error.message;
+                    responseMessage.className = 'alert error';
+                    responseMessage.style.display = 'block';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
