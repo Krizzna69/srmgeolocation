@@ -81,16 +81,14 @@
         function redirecthome() {
             window.location.href = 'index1.html';
         }
-
         function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), {
+            const map = new google.maps.Map(document.getElementById("map"), {
                 center: { lat: 16.79076487697725, lng: 80.84678917870635 },
                 zoom: 15,
             });
-            infoWindow = new google.maps.InfoWindow();
-
+            const infoWindow = new google.maps.InfoWindow();
             const regionCenter = { lat: 16.790764, lng: 80.846789 };
-            regionCircle = new google.maps.Circle({
+            const regionCircle = new google.maps.Circle({
                 strokeColor: "#FF0000",
                 strokeOpacity: 0.8,
                 strokeWeight: 2,
@@ -100,7 +98,6 @@
                 center: regionCenter,
                 radius: 50,
             });
-
             const userMarker = new google.maps.Marker({
                 map: map,
                 title: "Your Location",
@@ -118,20 +115,26 @@
                         };
                         userMarker.setPosition(pos);
                         map.setCenter(pos);
-
                         const distanceFromCenter = google.maps.geometry.spherical.computeDistanceBetween(
                             new google.maps.LatLng(pos.lat, pos.lng),
                             regionCircle.getCenter()
                         );
-                        if (distanceFromCenter <= regionCircle.getRadius() && !hasMarkedAttendance) {
-                            console.log('User is within region, marking attendance.');
-                            showAttendanceMarkedPopup();
-                            hasMarkedAttendance = true;
-                            punchIn();
-                        } else if (distanceFromCenter > regionCircle.getRadius() && hasMarkedAttendance) {
-                            console.log('User is outside the region, punching out.');
-                            punchOut();
-                            hasMarkedAttendance = false; // Reset for future use
+
+                        // Check if user is within the defined region
+                        if (distanceFromCenter <= regionCircle.getRadius()) {
+                            if (!hasMarkedAttendance && !hasPunchedInToday) {
+                                console.log('User is within region, marking attendance.');
+                                showAttendanceMarkedPopup();
+                                hasMarkedAttendance = true;
+                                hasPunchedInToday = true; // User has punched in today
+                                punchIn(); // Punch in here
+                            }
+                        } else {
+                            if (hasMarkedAttendance) {
+                                console.log('User is outside the region, punching out.');
+                                punchOut();
+                                hasMarkedAttendance = false; // Reset attendance state after punching out
+                            }
                         }
                     },
                     () => {
@@ -155,10 +158,12 @@
 
         function showAttendanceMarkedPopup() {
             const popup = document.getElementById("attendancePopup");
-            popup.style.display = "block";
-            setTimeout(() => {
-                popup.style.display = "none";
-            }, 2000);
+            if (popup) {
+                popup.style.display = "block";
+                setTimeout(() => {
+                    popup.style.display = "none";
+                }, 3000);
+            }
         }
 
         function punchIn() {
@@ -167,28 +172,31 @@
                 return;
             }
 
-            const punchInTime = new Date(); // Create a Date object for the current time
+            // Add this check right after retrieving the username and lastPunchInDate
+const currentDate = new Date().toDateString();
+if (currentDate === lastPunchInDate) {
+    hasPunchedInToday = true; // User has already punched in today
+}
 
-            fetch('https://srmgeolocation.onrender.com/punch-in', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username }), // Send the username
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Punched In at ' + punchInTime.toLocaleTimeString());
-                    localStorage.setItem('lastPunchInDate', new Date().toDateString());
-                    document.getElementById('checkInButton').disabled = true; // Disable the button after punching in
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('An error occurred. Please try again.');
-            });
+// Update this section in your initMap function where you check for punch-in
+if (distanceFromCenter <= regionCircle.getRadius()) {
+    if (!hasMarkedAttendance && !hasPunchedInToday) {
+        console.log('User is within region, marking attendance.');
+        showAttendanceMarkedPopup();
+        hasMarkedAttendance = true;
+        hasPunchedInToday = true; // User has punched in today
+        punchIn(); // Punch in here
+    } else if (hasPunchedInToday) {
+        alert('You have already punched in today.');
+    }
+} else {
+    if (hasMarkedAttendance) {
+        console.log('User is outside the region, punching out.');
+        punchOut();
+        hasMarkedAttendance = false; // Reset attendance state after punching out
+    }
+}
+
         }
 
         function punchOut() {
@@ -197,20 +205,19 @@
                 return;
             }
 
-            const punchOutTime = new Date(); // Create a Date object for the current time
+            const punchOutTime = new Date().getTime();
 
             fetch('https://srmgeolocation.onrender.com/punch-out', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username }), // Send the username
+                body: JSON.stringify({ username, punchOutTime }),
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Punched Out at ' + punchOutTime.toLocaleTimeString());
-                    document.getElementById('checkInButton').disabled = false; // Re-enable check-in for the next day
+                    alert('Punched Out at ' + new Date(punchOutTime).toLocaleTimeString());
                 } else {
                     alert('Error: ' + data.message);
                 }
@@ -219,6 +226,7 @@
                 alert('An error occurred. Please try again.');
             });
         }
+
 
         window.initMap = initMap;
     </script>
