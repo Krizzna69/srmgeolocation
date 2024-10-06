@@ -421,21 +421,21 @@ app.get('/get-attendance', async (req, res) => {
 
 app.post('/offsite-request', async (req, res) => {
   try {
-    const { fromTime, leavingTime, location,currentLocation, username } = req.body; // Use placeName instead of currentLocation
+    console.log(req.body); // Log the incoming request body
+    const { fromTime, leavingTime, location, currentLocation, username } = req.body;
 
-    if (!username) {
-      return res.status(400).json({ success: false, message: 'Username is required' });
+    // Check for missing fields
+    if (!username || !fromTime || !leavingTime || !location || !currentLocation) {
+      return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
-    // Create a new OffsiteRequest with the placeName
     const offsiteRequest = new OffsiteRequest({
       username,
       fromTime,
       leavingTime,
-      location, // Store place name
-      currentLocation // Store coordinates (latitude and longitude)
+      location,
+      currentLocation
     });
-    
 
     await offsiteRequest.save();
     res.status(200).json({ success: true, message: 'Offsite work request submitted successfully!' });
@@ -444,6 +444,7 @@ app.post('/offsite-request', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to submit offsite request' });
   }
 });
+
 
 
 app.get('/check-approval-status', async (req, res) => {
