@@ -103,7 +103,7 @@ app.post('/work-log', async (req, res) => {
       const punchOutDate = new Date(`${new Date().toISOString().split('T')[0]}T${punchOutTime}:00Z`);
 
       // Convert to IST (+05:30)
-      const IST_OFFSET = 5.5 * 60 * 60 * 1000; // Offset in milliseconds
+      const IST_OFFSET = 5.5 * 60 * 60; // Offset in milliseconds
       const punchInDateIST = new Date(punchInDate.getTime() + IST_OFFSET);
       const punchOutDateIST = new Date(punchOutDate.getTime() + IST_OFFSET);
 
