@@ -178,6 +178,23 @@ app.post('/admin/delete-worklog', async (req, res) => {
       res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+app.post('/admin/delete-query', async (req, res) => {
+  const { queryId } = req.body;
+
+  try {
+      const result = await Query.findByIdAndDelete(queryId); // Adjust Query model accordingly
+      if (!result) {
+          return res.status(404).json({ success: false, message: 'Query not found' });
+      }
+
+      res.json({ success: true, message: 'Query removed successfully' });
+  } catch (error) {
+      console.error('Error removing query:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Punch In Route
 // Assuming you have Mongoose set up and a User model defined
 app.post('/work-log', async (req, res) => {
