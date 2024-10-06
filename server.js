@@ -76,6 +76,11 @@ const adminCredentials = {
 // Utility functions
 
 
+function formatTime(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+}
 
 // Punch In Route
 // Assuming you have Mongoose set up and a User model defined

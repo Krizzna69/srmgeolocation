@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoCheckIn Dashboard</title>
@@ -60,13 +60,6 @@
             font-weight: 600;
             font-family: 'Arial', sans-serif;
         }
-        .profile-icon {
-            width: 80px;
-            height: 80px;
-            background-color: #e0e0e0;
-            border-radius: 50%;
-            margin: 30px 0;
-        }
         .icon-grid {
             margin-top: 200px;
             display: flex;
@@ -116,36 +109,34 @@
             font-size: 16px;
             color: #555;
         }
-        #map{
+        #map {
             display: none;
         }
     </style>
 </head>
 <body>
-    <div id="attendancePopup">
-        Attendance Marked
-    </div>
+    <div id="attendancePopup">Attendance Marked</div>
     <div id="map"></div>
     <div class="dashboard-container">
         <div class="header">
-            <img src="Group 33.png" alt="Home" >
+            <img src="Group 33.png" alt="Home">
             <h2>GeoCheckIn</h2>
         </div>
         <div class="icon-grid">
             <div>
-                <img src="Map pin.png" alt="Live LOC" onclick="redirectToLiveLocation()" >
+                <img src="map pin (1).png" alt="Live LOC" onclick="redirectToLiveLocation()">
                 <span>Live LOC</span>
             </div>
             <div>
-                <img src="contact-form 1.png" alt="My Activity" onclick="redirectTomyactivity()">
+                <img src="contact-form 1 (1).png" alt="My Activity" onclick="redirectTomyactivity()">
                 <span>My Activity</span>
             </div>
             <div>
-                <img src="remote-assistance 1.png" alt="Off-site" onclick="redirectoffsite()">
+                <img src="remote-assistance 1 (1).png" alt="Off-site" onclick="redirectoffsite()">
                 <span>Off-site</span>
             </div>
             <div>
-                <img src="work-from-home 1.png" alt="WFH" onclick="redirectwork()">
+                <img src="work-from-home 1 (1).png" alt="WFH" onclick="redirectwork()">
                 <span>WFH</span>
             </div>
         </div>
@@ -161,41 +152,48 @@
         </ul>
     </div>
     <script>
-        function redirectwork(){
-            window.location.href='workfromhome.html'
+        function redirectwork() {
+            window.location.href = 'workfromhome.html';
         }
-        function redirectemp(){
-            window.location.href='employee.html'
+        function redirectemp() {
+            window.location.href = 'employee.html';
         }
-        function redirectpie(){
-            window.location.href='piechart.html';
+        function redirectpie() {
+            window.location.href = 'piechart.html';
         }
-        function redirectoffsite(){
-            window.location.href='offsite.html';
+        function redirectoffsite() {
+            window.location.href = 'offsite.html';
         }
         function redirectToLiveLocation() {
-     window.location.href = 'livelocation.html';
-        }        
-        function redirectTomyactivity() {
-     window.location.href = 'Myactivity.html';
+            window.location.href = 'livelocation.html';
         }
+        function redirectTomyactivity() {
+            window.location.href = 'Myactivity.html';
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             username = localStorage.getItem('username');
+            checkAttendanceReset();
             window.initMap = initMap;
-            
         });
 
-        let map, infoWindow, regionCircle, hasPunchedInToday,hasMarkedAttendance = false;
-        
-        document.addEventListener("DOMContentLoaded", () => {
-            username = localStorage.getItem('username');
-            
-        });
-         // Store the username after login
+        let map, infoWindow, regionCircle, hasPunchedInToday, hasMarkedAttendance = false;
+
+        function checkAttendanceReset() {
+            const lastMarkedTime = localStorage.getItem('lastMarkedTime');
+            const currentTime = new Date().getTime();
+
+            // If lastMarkedTime is set and 24 hours have passed
+            if (lastMarkedTime && (currentTime - lastMarkedTime) > 24 * 60 * 60 * 1000) {
+                localStorage.removeItem('hasMarkedAttendance');
+                localStorage.removeItem('lastMarkedTime');
+            }
+        }
+
         const blueDotIcon = 'https://img.icons8.com/material-rounded/24/000000/marker.png'; // Replace with your blue dot URL
         function initMap() {
             map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 16.79076487697725, lng:80.84678917870635, },
+                center: { lat: 16.79076487697725, lng: 80.84678917870635 },
                 zoom: 15,
             });
             infoWindow = new google.maps.InfoWindow();
@@ -242,23 +240,22 @@
                             new google.maps.LatLng(pos.lat, pos.lng),
                             regionCircle.getCenter()
                         );
-                        if (distanceFromCenter <= regionCircle.getRadius()) {
-        if (!hasMarkedAttendance) {
-        console.log('User is within region, marking attendance.');
-        showAttendanceMarkedPopup();
-        hasMarkedAttendance = true;
-        
-        punchIn(); // Punch in here
-    }
-} else {
-    if (hasMarkedAttendance && !hasPunchedOut) {
-        console.log('User is outside the region, punching out.');
-        punchOut();
-        hasPunchedOut = true;
-    }
-}
 
- 
+                        if (distanceFromCenter <= regionCircle.getRadius()) {
+                            if (!localStorage.getItem('hasMarkedAttendance')) {
+                                console.log('User is within region, marking attendance.');
+                                showAttendanceMarkedPopup();
+                                localStorage.setItem('hasMarkedAttendance', 'true'); // Store as string
+                                localStorage.setItem('lastMarkedTime', new Date().getTime()); // Store current timestamp
+                                punchIn(); // Punch in here
+                            }
+                        } else {
+                            if (hasMarkedAttendance && !hasPunchedOut) {
+                                console.log('User is outside the region, punching out.');
+                                punchOut();
+                                hasPunchedOut = true;
+                            }
+                        }
                     },
                     () => {
                         handleLocationError(true, infoWindow, map.getCenter());
@@ -269,8 +266,6 @@
             }
         }
 
-
-
         function handleLocationError(browserHasGeolocation, infoWindow, pos) {
             infoWindow.setPosition(pos);
             infoWindow.setContent(
@@ -280,88 +275,87 @@
             );
             infoWindow.open(map);
         }
-        
 
         function showAttendanceMarkedPopup() {
-    const popup = document.getElementById("attendancePopup");
-    if (popup) {
-        popup.style.display = "block";
-        setTimeout(() => {
-            popup.style.display = "none";
-        }, 3000);
-    }
-}
+            const popup = document.getElementById("attendancePopup");
+            if (popup) {
+                popup.style.display = "block";
+                setTimeout(() => {
+                    popup.style.display = "none";
+                }, 3000);
+            }
+        }
 
         function punchIn() {
-        if (!username) {
-            alert('Error: No username provided.');
-            return;
-        }
-
-        const currentDate = new Date().toDateString();
-
-        if (hasPunchedInToday && currentDate === localStorage.getItem('lastPunchInDate')) {
-            alert('You have already punched in for today.');
-            return;
-        }
-
-        const punchInTime = new Date().getTime();
-
-        fetch('https://srmgeolocation.onrender.com/punch-in', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, punchInTime }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Punched In at ' + new Date(punchInTime).toLocaleTimeString());
-                hasPunchedInToday = true;
-                localStorage.setItem('lastPunchInDate', currentDate);
-            } else {
-                alert('Error: ' + data.message);
+            if (!username) {
+                alert('Error: No username provided.');
+                return;
             }
-        })
-        .catch(error => {
-            alert('An error occurred. Please try again.');
-        });
-    }
 
-    function punchOut() {
-    if (!username) {
-        alert('Error: No username provided.');
-        return;
-    }
+            const currentDate = new Date().toDateString();
 
-    const punchOutTime = new Date().getTime();
+            if (hasPunchedInToday && currentDate === localStorage.getItem('lastPunchInDate')) {
+                alert('You have already punched in for today.');
+                return;
+            }
 
-    fetch('https://srmgeolocation.onrender.com/punch-out', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, punchOutTime }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Punched Out at ' + new Date(punchOutTime).toLocaleTimeString());
-        } else {
-            alert('Error: ' + data.message);
+            const punchInTime = new Date().getTime();
+
+            fetch('https://srmgeolocation.onrender.com/punch-in', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, punchInTime }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Punched In at ' + new Date(punchInTime).toLocaleTimeString());
+                    hasPunchedInToday = true;
+                    localStorage.setItem('lastPunchInDate', currentDate);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+            });
         }
-    })
-    .catch(error => {
-        alert('An error occurred. Please try again.');
-    });
-}
 
-    initMap();
+        function punchOut() {
+            if (!username) {
+                alert('Error: No username provided.');
+                return;
+            }
+
+            const punchOutTime = new Date().getTime();
+
+            fetch('https://srmgeolocation.onrender.com/punch-out', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, punchOutTime }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Punched Out at ' + new Date(punchOutTime).toLocaleTimeString());
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        initMap();
     </script>
     <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyASAMgt4KkC1Hr4bbf8A8JBGwAcpwlAv6o&callback=initMap&v=weekly&libraries=geometry"
-    async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyASAMgt4KkC1Hr4bbf8A8JBGwAcpwlAv6o&callback=initMap&v=weekly&libraries=geometry"
+        async
     ></script>
 </body>
 </html>
