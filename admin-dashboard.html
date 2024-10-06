@@ -129,6 +129,7 @@
                     <th>Username</th>
                     <th>Query Text</th>
                     <th>Submitted At</th>
+                    <th>Actions</th> <!-- Added Actions header -->
                 </tr>
             </thead>
             <tbody id="queriesTable">
@@ -139,17 +140,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            loadOffsiteRequests();
-            loadWorkFromHomeLogs();
-            loadQueries();
-        });
+            const requestsTable = document.getElementById('requestsTable');
+            const workLogsTable = document.getElementById('workLogsTable');
+            const queriesTable = document.getElementById('queriesTable');
 
-        function loadOffsiteRequests() {
+            // Load Offsite Requests
             fetch('https://srmgeolocation.onrender.com/admin/offsite-requests')
                 .then(response => response.json())
                 .then(data => {
-                    const requestsTable = document.getElementById('requestsTable');
-                    requestsTable.innerHTML = '';
                     if (data.success) {
                         data.requests.forEach(request => {
                             const row = document.createElement('tr');
@@ -158,7 +156,7 @@
                                 <td>${new Date(request.fromTime).toLocaleString()}</td>
                                 <td>${new Date(request.leavingTime).toLocaleString()}</td>
                                 <td>${request.location}</td>
-                                <td>${request.currentLocation ? request.currentLocation.lat : 'Not Submitted'}</td>
+                                <td>${request.currentLocation ? `${request.currentLocation.lat}` : 'Not Submitted'}</td>
                                 <td>${request.isApproved === null ? 'Pending' : request.isApproved ? 'Approved' : 'Disapproved'}</td>
                                 <td>
                                     <button class="btn btn-approve" onclick="updateRequestStatus('${request._id}', true)">Approve</button>
@@ -173,19 +171,16 @@
                     }
                 })
                 .catch(error => console.error('Error:', error));
-        }
 
-        function loadWorkFromHomeLogs() {
+            // Load Work From Home Logs
             fetch('https://srmgeolocation.onrender.com/admin/work-logs')
                 .then(response => response.json())
                 .then(data => {
-                    const workLogsTable = document.getElementById('workLogsTable');
-                    workLogsTable.innerHTML = '';
                     if (data.success) {
                         data.workLogs.forEach(log => {
+                            const row = document.createElement('tr');
                             const totalHours = Math.floor((new Date(log.punchOutTime) - new Date(log.punchInTime)) / 3600000);
                             const totalMinutes = Math.floor(((new Date(log.punchOutTime) - new Date(log.punchInTime)) % 3600000) / 60000);
-                            const row = document.createElement('tr');
                             row.innerHTML = `
                                 <td>${log.username}</td>
                                 <td>${new Date(log.punchInTime).toLocaleString()}</td>
@@ -205,14 +200,11 @@
                     }
                 })
                 .catch(error => console.error('Error:', error));
-        }
 
-        function loadQueries() {
+            // Load Submitted Queries
             fetch('https://srmgeolocation.onrender.com/admin/queries')
                 .then(response => response.json())
                 .then(data => {
-                    const queriesTable = document.getElementById('queriesTable');
-                    queriesTable.innerHTML = '';
                     if (data.success) {
                         data.queries.forEach(query => {
                             const row = document.createElement('tr');
@@ -220,6 +212,11 @@
                                 <td>${query.username}</td>
                                 <td>${query.queryText}</td>
                                 <td>${new Date(query.createdAt).toLocaleString()}</td>
+                                <td>
+                                    <button class="btn btn-approve" onclick="approveQuery('${query._id}')">Approve</button>
+                                    <button class="btn btn-disapprove" onclick="disapproveQuery('${query._id}')">Disapprove</button>
+                                    <button class="btn btn-remove" onclick="removeQuery('${query._id}')">Remove</button>
+                                </td>
                             `;
                             queriesTable.appendChild(row);
                         });
@@ -228,7 +225,7 @@
                     }
                 })
                 .catch(error => console.error('Error:', error));
-        }
+        });
 
         function showTab(tabName) {
             const tabs = document.querySelectorAll('.tab-content');
@@ -246,6 +243,59 @@
             document.querySelector(`.tab-button[onclick*='${tabName}']`).classList.add('active');
         }
 
+        // Approve Query
+        function approveQuery(queryId) {
+            fetch(`https://srmgeolocation.onrender.com/admin/queries/${queryId}/approve`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Query approved successfully');
+                    location.reload(); // Reload to reflect changes
+                } else {
+                    alert('Failed to approve query');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Disapprove Query
+        function disapproveQuery(queryId) {
+            fetch(`https://srmgeolocation.onrender.com/admin/queries/${queryId}/disapprove`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Query disapproved successfully');
+                    location.reload(); // Reload to reflect changes
+                } else {
+                    alert('Failed to disapprove query');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Remove Query
+        function removeQuery(queryId) {
+            if (confirm('Are you sure you want to remove this query?')) {
+                fetch(`https://srmgeolocation.onrender.com/admin/queries/${queryId}/remove`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Query removed successfully');
+                        location.reload(); // Reload to reflect changes
+                    } else {
+                        alert('Failed to remove query');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }}
+
+        // Update Request Status
         function updateRequestStatus(requestId, isApproved) {
             fetch(`https://srmgeolocation.onrender.com/admin/offsite-requests/${requestId}/${isApproved ? 'approve' : 'disapprove'}`, {
                 method: 'POST'
@@ -254,7 +304,7 @@
             .then(data => {
                 if (data.success) {
                     alert('Request status updated successfully');
-                    loadOffsiteRequests(); // Reload requests to reflect changes
+                    location.reload(); // Reload to reflect changes
                 } else {
                     alert('Failed to update request status');
                 }
@@ -262,15 +312,16 @@
             .catch(error => console.error('Error:', error));
         }
 
-        function updateWorkLogStatus(workLogId, isApproved) {
-            fetch(`https://srmgeolocation.onrender.com/admin/work-logs/${workLogId}/${isApproved ? 'approve' : 'disapprove'}`, {
+        // Update Work Log Status
+        function updateWorkLogStatus(logId, isApproved) {
+            fetch(`https://srmgeolocation.onrender.com/admin/work-logs/${logId}/${isApproved ? 'approve' : 'disapprove'}`, {
                 method: 'POST'
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     alert('Work log status updated successfully');
-                    loadWorkFromHomeLogs(); // Reload work logs to reflect changes
+                    location.reload(); // Reload to reflect changes
                 } else {
                     alert('Failed to update work log status');
                 }
@@ -278,37 +329,41 @@
             .catch(error => console.error('Error:', error));
         }
 
+        // Remove Request
         function removeRequest(requestId) {
-            fetch(`https://srmgeolocation.onrender.com/admin/offsite-requests/${requestId}`, {
-                method: 'DELETE'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Request removed successfully');
-                    loadOffsiteRequests(); // Reload requests
-                } else {
-                    alert('Failed to remove request');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
+            if (confirm('Are you sure you want to remove this request?')) {
+                fetch(`https://srmgeolocation.onrender.com/admin/offsite-requests/${requestId}/remove`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Request removed successfully');
+                        location.reload(); // Reload to reflect changes
+                    } else {
+                        alert('Failed to remove request');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }}
 
-        function removeWorkLog(workLogId) {
-            fetch(`https://srmgeolocation.onrender.com/admin/work-logs/${workLogId}`, {
-                method: 'DELETE'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Work log removed successfully');
-                    loadWorkFromHomeLogs(); // Reload work logs
-                } else {
-                    alert('Failed to remove work log');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
+        // Remove Work Log
+        function removeWorkLog(logId) {
+            if (confirm('Are you sure you want to remove this work log?')) {
+                fetch(`https://srmgeolocation.onrender.com/admin/work-logs/${logId}/remove`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Work log removed successfully');
+                        location.reload(); // Reload to reflect changes
+                    } else {
+                        alert('Failed to remove work log');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }}
     </script>
 </body>
 </html>
