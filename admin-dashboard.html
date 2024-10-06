@@ -92,55 +92,19 @@
     </table>
 
     <script>
-        function updateRequestStatus(requestId, isApproved) {
-            const endpoint = isApproved ? 'https://srmgeolocation.onrender.com/admin/approve-request' : 'https://srmgeolocation.onrender.com/admin/disapprove-request';
-
-            fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ requestId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Request status updated successfully');
-                    location.reload(); // Reload the page to reflect changes
-                } else {
-                    alert('Failed to update request status: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        function removeRequest(requestId) {
-            fetch('https://srmgeolocation.onrender.com/admin/delete-request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ requestId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Request removed successfully');
-                    location.reload(); // Reload the page to reflect changes
-                } else {
-                    alert('Failed to remove request: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
+            const requestsTable = document.getElementById('requestsTable');
+            const workLogsTable = document.getElementById('workLogsTable');
+            const loadingMessage = document.createElement('p');
+            loadingMessage.textContent = 'Loading...';
+            loadingMessage.style.textAlign = 'center';
+            document.body.appendChild(loadingMessage);
+    
             // Fetch Offsite Requests
             fetch('https://srmgeolocation.onrender.com/admin/offsite-requests')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const requestsTable = document.getElementById('requestsTable');
                         data.requests.forEach(request => {
                             const row = document.createElement('tr');
                             row.innerHTML = `
@@ -162,14 +126,14 @@
                         alert('Failed to load requests');
                     }
                 })
-                .catch(error => console.error('Error:', error));
-
+                .catch(error => console.error('Error:', error))
+                .finally(() => loadingMessage.remove());
+    
             // Fetch Work From Home Logs
             fetch('https://srmgeolocation.onrender.com/admin/work-logs')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const workLogsTable = document.getElementById('workLogsTable');
                         data.workLogs.forEach(log => {
                             const row = document.createElement('tr');
                             row.innerHTML = `
@@ -184,8 +148,10 @@
                         alert('Failed to load work logs');
                     }
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => console.error('Error:', error))
+                .finally(() => loadingMessage.remove());
         });
     </script>
+    
 </body>
 </html>
