@@ -31,10 +31,7 @@ const offsiteRequestSchema = new mongoose.Schema({
   fromTime: { type: Date, required: true },
   leavingTime: { type: Date, required: true },
   location: { type: String, required: true },
-  currentLocation: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true }
-  },
+  currentLocation: { lat: { type: Number, required: true } },
   isApproved: { type: Boolean, default: null } // null = pending, true = approved, false = disapproved
 });
 
@@ -436,7 +433,7 @@ app.post('/offsite-request', async (req, res) => {
       fromTime,
       leavingTime,
       location, // Store place name
-      currentLocation: { lat, lng } // Store coordinates (latitude and longitude)
+      currentLocation // Store coordinates (latitude and longitude)
     });
     
 
