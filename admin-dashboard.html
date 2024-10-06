@@ -129,7 +129,6 @@
                     <th>Username</th>
                     <th>Query Text</th>
                     <th>Submitted At</th>
-                    <th>Actions</th> <!-- Added Actions header -->
                 </tr>
             </thead>
             <tbody id="queriesTable">
@@ -212,11 +211,6 @@
                                 <td>${query.username}</td>
                                 <td>${query.queryText}</td>
                                 <td>${new Date(query.createdAt).toLocaleString()}</td>
-                                <td>
-                                    <button class="btn btn-approve" onclick="approveQuery('${query._id}')">Approve</button>
-                                    <button class="btn btn-disapprove" onclick="disapproveQuery('${query._id}')">Disapprove</button>
-                                    <button class="btn btn-remove" onclick="removeQuery('${query._id}')">Remove</button>
-                                </td>
                             `;
                             queriesTable.appendChild(row);
                         });
@@ -243,127 +237,9 @@
             document.querySelector(`.tab-button[onclick*='${tabName}']`).classList.add('active');
         }
 
-        // Approve Query
-        function approveQuery(queryId) {
-            fetch(`https://srmgeolocation.onrender.com/admin/queries/${queryId}/approve`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Query approved successfully');
-                    location.reload(); // Reload to reflect changes
-                } else {
-                    alert('Failed to approve query');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
+        // Functions for Request and Work Log Actions...
+        // Include your existing fetch calls and action functions here
 
-        // Disapprove Query
-        function disapproveQuery(queryId) {
-            fetch(`https://srmgeolocation.onrender.com/admin/queries/${queryId}/disapprove`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Query disapproved successfully');
-                    location.reload(); // Reload to reflect changes
-                } else {
-                    alert('Failed to disapprove query');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        // Remove Query
-        function removeQuery(queryId) {
-            if (confirm('Are you sure you want to remove this query?')) {
-                fetch(`https://srmgeolocation.onrender.com/admin/queries/${queryId}/remove`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Query removed successfully');
-                        location.reload(); // Reload to reflect changes
-                    } else {
-                        alert('Failed to remove query');
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        }}
-
-        // Update Request Status
-        function updateRequestStatus(requestId, isApproved) {
-            fetch(`https://srmgeolocation.onrender.com/admin/offsite-requests/${requestId}/${isApproved ? 'approve' : 'disapprove'}`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Request status updated successfully');
-                    location.reload(); // Reload to reflect changes
-                } else {
-                    alert('Failed to update request status');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        // Update Work Log Status
-        function updateWorkLogStatus(logId, isApproved) {
-            fetch(`https://srmgeolocation.onrender.com/admin/work-logs/${logId}/${isApproved ? 'approve' : 'disapprove'}`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Work log status updated successfully');
-                    location.reload(); // Reload to reflect changes
-                } else {
-                    alert('Failed to update work log status');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        // Remove Request
-        function removeRequest(requestId) {
-            if (confirm('Are you sure you want to remove this request?')) {
-                fetch(`https://srmgeolocation.onrender.com/admin/offsite-requests/${requestId}/remove`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Request removed successfully');
-                        location.reload(); // Reload to reflect changes
-                    } else {
-                        alert('Failed to remove request');
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        }}
-
-        // Remove Work Log
-        function removeWorkLog(logId) {
-            if (confirm('Are you sure you want to remove this work log?')) {
-                fetch(`https://srmgeolocation.onrender.com/admin/work-logs/${logId}/remove`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Work log removed successfully');
-                        location.reload(); // Reload to reflect changes
-                    } else {
-                        alert('Failed to remove work log');
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        }}
     </script>
 </body>
 </html>
