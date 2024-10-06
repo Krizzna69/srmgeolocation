@@ -96,7 +96,7 @@
             function redirecthome(){
         window.location.href = 'index1.html'
     }
-    le
+    
         document.getElementById('submit').addEventListener('click', function() {
             const username = document.getElementById('username').value;
             const punchIn = document.getElementById('punchIn').value;
@@ -113,7 +113,7 @@
                 punchOutTime: new Date().toISOString().split('T')[0] + ' ' + punchOut + ':00',
             };
 
-            fetch('https://lastofus-dbww.onrender.com/work-log', {
+            fetch('https://geolocation-zmi9.onrender.com/work-log', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
