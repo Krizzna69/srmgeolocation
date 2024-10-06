@@ -143,15 +143,12 @@
                 if (!hasMarkedAttendance && !hasPunchedInToday) {
                     console.log('User is within region, marking attendance.');
                     showAttendanceMarkedPopup();
-                    hasMarkedAttendance = true;
-                    hasPunchedInToday = true; // User has punched in today
                     punchIn(); // Punch in here
                 }
             } else {
                 if (hasMarkedAttendance) {
                     console.log('User is outside the region, punching out.');
                     punchOut();
-                    hasMarkedAttendance = false; // Reset attendance state after punching out
                 }
             }
         }
@@ -193,7 +190,10 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    hasMarkedAttendance = true;
+                    hasPunchedInToday = true; // Mark user as punched in today
                     localStorage.setItem('lastPunchInDate', new Date().toDateString());
+                    document.getElementById('checkInButton').disabled = true; // Disable check-in button
                     alert('Punched In at ' + new Date(punchInTime).toLocaleTimeString());
                 } else {
                     alert('Error: ' + data.message);
