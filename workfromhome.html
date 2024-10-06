@@ -69,6 +69,9 @@
     </style>
 </head>
 <body>
+    <div class="header">
+        <img src="Group 33.png" alt="Home" onclick="redirecthome()" >
+    </div>
 
     <div class="container">
         <h1>Work From Home Log</h1>
@@ -90,6 +93,10 @@
     
 
     <script>
+            function redirecthome(){
+        window.location.href = 'index1.html'
+    }
+    le
         document.getElementById('submit').addEventListener('click', function() {
             const username = document.getElementById('username').value;
             const punchIn = document.getElementById('punchIn').value;
