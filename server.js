@@ -86,8 +86,12 @@ app.post('/work-log', async (req, res) => {
   const { username, punchInTime, punchOutTime } = req.body;
 
   try {
-      const user = await User.findOne({ username });
+      // Validate input
+      if (!username || !punchInTime || !punchOutTime) {
+          return res.status(400).json({ success: false, message: 'All fields are required' });
+      }
 
+      const user = await User.findOne({ username });
       if (!user) {
           return res.status(400).json({ success: false, message: 'User not found' });
       }
@@ -96,19 +100,25 @@ app.post('/work-log', async (req, res) => {
       const punchInDate = new Date(punchInTime);
       const punchOutDate = new Date(punchOutTime);
 
+      // Validate date objects
+      if (isNaN(punchInDate) || isNaN(punchOutDate)) {
+          return res.status(400).json({ success: false, message: 'Invalid date format' });
+      }
+
       // Validate punch out time is after punch in time
       if (punchOutDate <= punchInDate) {
           return res.status(400).json({ success: false, message: 'Punch Out time must be after Punch In time' });
       }
 
       // Create or update the work log for the user
+      user.workLogs = user.workLogs || []; // Ensure workLogs array exists
       user.workLogs.push({ punchInTime: punchInDate, punchOutTime: punchOutDate });
       await user.save();
 
       res.json({ success: true, message: 'Work hours logged successfully' });
   } catch (error) {
       console.error('Error logging work hours:', error);
-      res.status(500).json({ success: false, message: 'Server error' });
+      res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
