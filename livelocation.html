@@ -225,28 +225,21 @@
         return;
     }
 
-    const currentDate = new Date().toDateString();
-
-    if (hasPunchedInToday && currentDate === localStorage.getItem('lastPunchInDate')) {
-        alert('You have already punched in for today.');
-        return;
-    }
-
-    const punchInTime = new Date(); // Use Date object directly
+    const punchInTime = new Date(); // Create a Date object for the current time
 
     fetch('https://srmgeolocation.onrender.com/punch-in', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, punchInTime }), // Send Date object
+        body: JSON.stringify({ username, punchInTime }), // Send the Date object
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             alert('Punched In at ' + punchInTime.toLocaleTimeString());
             hasPunchedInToday = true;
-            localStorage.setItem('lastPunchInDate', currentDate);
+            localStorage.setItem('lastPunchInDate', new Date().toDateString());
         } else {
             alert('Error: ' + data.message);
         }
@@ -262,14 +255,14 @@ function punchOut() {
         return;
     }
 
-    const punchOutTime = new Date(); // Use Date object directly
+    const punchOutTime = new Date(); // Create a Date object for the current time
 
     fetch('https://srmgeolocation.onrender.com/punch-out', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, punchOutTime }), // Send Date object
+        body: JSON.stringify({ username, punchOutTime }), // Send the Date object
     })
     .then(response => response.json())
     .then(data => {
@@ -283,6 +276,7 @@ function punchOut() {
         alert('An error occurred. Please try again.');
     });
 }
+
 
         window.initMap = initMap;
 </script>

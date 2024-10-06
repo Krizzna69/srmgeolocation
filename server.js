@@ -299,44 +299,48 @@ app.post('/update-attendance', async (req, res) => {
 // Utility function to format seconds into hours and minutes
 // Punch-In Endpoint
 app.post('/punch-in', async (req, res) => {
-  const { username } = req.body;
+  const { username, punchInTime } = req.body;
 
   try {
       const user = await User.findOne({ username });
-      
-      if (!user) return res.status(400).json({ success: false, message: 'User not found' });
 
-      const now = new Date();
-      
+      if (!user) {
+          return res.status(400).json({ success: false, message: 'User not found' });
+      }
+
+      const now = new Date(punchInTime); // Use the Date object from the request
+
       user.punchInTime = now; // Store as a Date object
       user.firstCheckInTime = user.firstCheckInTime || now; // Set first check-in time if not set
       user.lastCheckOutTime = null; // Reset last check-out time
-      
+
       await user.save();
-      
+
       res.json({
           success: true,
           message: 'Punched In successfully',
           punchInTime: user.punchInTime,
           firstCheckInTime: user.firstCheckInTime
       });
-      
+
   } catch (error) {
       console.error('Error during punch-in:', error);
       res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
-
 app.post('/punch-out', async (req, res) => {
-  const { username } = req.body;
+  const { username, punchOutTime } = req.body;
 
   try {
       const user = await User.findOne({ username });
-      if (!user) return res.status(400).json({ success: false, message: 'User not found' });
-      if (!user.punchInTime) return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
+      if (!user) {
+          return res.status(400).json({ success: false, message: 'User not found' });
+      }
+      if (!user.punchInTime) {
+          return res.status(400).json({ success: false, message: 'Punch In first before Punching Out' });
+      }
 
-      const now = new Date();
+      const now = new Date(punchOutTime); // Use the Date object from the request
       user.punchOutTime = now; // Store as a Date object
 
       // Calculate total working time in milliseconds
@@ -361,7 +365,7 @@ app.post('/punch-out', async (req, res) => {
       // Convert totalWorkingHours to "0h 0m" format for output
       const hours = Math.floor(user.totalWorkingHours / 3600);
       const minutes = Math.floor((user.totalWorkingHours % 3600) / 60);
-      
+
       res.json({
           success: true,
           message: 'Punched Out successfully',
@@ -374,6 +378,7 @@ app.post('/punch-out', async (req, res) => {
       res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
+
 
 
 
